@@ -10,9 +10,10 @@ clear;clc;
 
 % Directorio
 cd('C:\Users\ferna\Desktop\ME_Otoño 2024\Econometría I\Tarea 2');
+
 addpath('datos', 'funciones'); 
 
-% Importo datos y guardo variables
+% Importarmos datos y guardamos variables
 data = readtable('WAGEPAN.xls');
 
 y = [data.lwage];
@@ -21,78 +22,160 @@ x = [data.educ data.black data.hisp data.exper data.expersq data.married data.un
 year = [data.year];
 id = repelem(1:length(unique(data.nr)), 8)';
 
-%% 1. Pooled MCO -----------------------------------------------------------
+n = length(y);                                  % Num observaciones
+k  = size(x,2);                                 % Num regresores
+nc = length(unique(id));                        % Num cluster
+t = length(unique(year));                       % Num periodos
 
-[b_po, r_po] = mco(x, y);                   % Coeficientes y residuos
+%% 1. Pooled MCO
 
-ee_std_po = ee_std(x, r_po);                % Errores
+[b_po, r_po] = mco(x, y);                       % Coeficientes y residuos
+
+ee_std_po = ee_std(x, r_po);                    % Errores
 ee_rob_po = ee_rob(x, r_po);
 ee_clust_po = ee_clust(x, r_po, id);
 
-%% 2. Estimador Between ----------------------------------------------------
+%[ee_std_po, ee_rob_po, ee_clust_po] = ee(x, r_po, id);
 
-ym = accumarray(id, y, [], @mean);          % Transfromación between
+%% 2. Estimador Between
+
+ym = accumarray(id, y, [], @mean);              % Transfromación between
 for i = 1:size(x,2)
     xm(:,i) = accumarray(id, x(:,i), [], @mean);
 end
 id_bt = (1:length(ym))';                    
 
-[b_bt, r_bt] = mco(xm, ym);                 % Coeficientes y residuos
+[b_bt, r_bt] = mco(xm, ym);                     % Coeficientes y residuos
 
-ee_std_bt = ee_std(xm, r_bt);               % Errores
+ee_std_bt = ee_std(xm, r_bt);                   % Errores
 ee_rob_bt = ee_rob(xm, r_bt);
 ee_clust_bt = ee_clust(xm, r_bt, id_bt);
 
-%% 4. Estimador within -----------------------------------------------------
+%[ee_std_bt, ee_rob_bt, ee_clust_bt] = ee(x, r_bt, id);
 
-yw = y - ym(id);                            % Transformación within
+%% 4. Estimador within
+
+yw = y - ym(id);                                % Transformación within
 for i = 1:size(x,2)
 xw(:,i) = x(:,i) - xm(id,i);
 end
-xw = xw(:,4:end);                           % Drop variables tiempo-invariantes
+xw = xw(:,4:end);                               % Drop variables tiempo-invariantes
 
-[b_w, r_w] = mco(xw, yw);                   % Coeficientes y residuos
+[b_w, r_w] = mco(xw, yw);                       % Coeficientes y residuos
 
-ee_std_w = ee_std(xw, r_w);                 % Errores
+ee_std_w = ee_std(xw, r_w);                     % Errores
 ee_rob_w = ee_rob(xw, r_w);
 ee_clust_w = ee_clust(xw, r_w, id);
 
-% Opción vía dummys (calcula efectos fijos)
+%[ee_std_w, ee_rob_w, ee_clust_w] = ee(x, r_w, id);
+
+%% Vía dummys (calcula los efectos fijos) -- algo no corre bien aquí matriz no singular
 dum = dummyvar(id);
 xd = [x dum];
-[b_d, r_d] = mco(xd, y);                 % Coeficientes y residuos
-ee_std_d = ee_std(xd, r_d);               % Errores
+
+[b_d, r_d] = mco(xd, y);                        % Coeficientes y residuos
+
+ee_std_d = ee_std(xd, r_d);                     % Errores
 ee_rob_d = ee_rob(xd, r_d);
 ee_clust_d = ee_clust(xd, r_d, id);
 
-%% 3. Estimador de efectos aleatoreos (Hansen 17.2 p.629) ----------------------
+%[ee_std_d, ee_rob_d, ee_clust_d] = ee(x, r_d, id);
+
+%% 3. Estimador de efectos aleatoreos (Hansen 17.2 p.629)
 
 sig_e2 = (1/(n-nc-k)) .* sum(r_w.^2);           
-sig_u2 = (1/(nc-K)) .* (sum(r_bt.^2)) - (1/nc)*sig_e2;
-
+sig_u2 = (1/(nc-k)) .* (sum(r_bt.^2)) - (1/t)*sig_e2;
+                                
 aux = ones(n,1);                                % Matriz var-cov
 I = eye(n,n);
-om_e = (aux*aux').*sig_u2 + I.*sig_e2;
-om = om_e ./ sig_e2;
+mvc_re = (aux*aux').*sig_u2 + I.*sig_e2;        % sig_e2*omega
+om_re = mvc_re ./ sig_e2;
 
-[b_rand, r_rand] = fgls(y, x, om);              % Coeficientes y residuos
+[b_re, r_re] = fgls(x, y, om_re);               % Coeficientes y residuos
 
-ee_std_rand = ee_std(x, r_rand);                % Errores
-ee_rob_rand = ee_rob(x, r_rand);
-ee_clust_rand = ee_clust(x, r_rand, id);
+ee_std_re = ee_std(x, r_re);                    % Errores
+ee_rob_re = ee_rob(x, r_re);
+ee_clust_re = ee_clust(x, r_re, id);
 
-% 5. Intervalos de confianza -------------------------------------------------
+%[ee_std_re, ee_rob_re, ee_clust_re] = ee(x, r_re, id);
 
-working on it
+%% 5. Intervalos de confianza para el premio a pertenecer a un sindicato
 
-%-------------------------------------------------------------------------
-% FUNCIONES --------------------------------------------------------------
-%-------------------------------------------------------------------------
+alpha = 0.05;                                   % Nivel de significancia
+z = norminv(1 - alpha/2);                       % Valor crítico
+B = 2000;                                       % Núme remuestreo
+
+b_union = b_po(7);                              % Premio por estar sindicalizado
+ee_union = ee_std_po(7);                        % Error estándar variable sindicato
+
+% Teoría asíntótica
+ci_ta = [b_union - z*ee_union, b_union + z*ee_union];     % Intervalo
+
+% Block bootstrap
+b_bbstp= zeros(B, 1);                           % Vector para almacenar betas
+for i = 1:B                                     % Remuestreo 2000 veces
+    ind_remuestreo = [];
+    for j = 1:nc                                % índices para remuestreo por bloque
+        start = randi([1, n - t + 1]);          % índice de inicio  
+        block = start:(start + t - 1);          % Índice para cada obs del bloque
+        ind_remuestreo = [ind_remuestreo; block'];  % Guanda en vector de índices general
+    end
+    ind_remuestreo = ind_remuestreo(1:n);       % Asegurar tamaño correcto
+    x_block = x(ind_remuestreo, :);             % Variable resampleada según los índices
+    y_block = y(ind_remuestreo);
+    b_block = inv(x_block'*x_block)*(x_block'*y_block);   % Estimación para la nueva muestra
+    b_bstp(i) = b_block(7);                               % Guardo el parámetro de interés
+end
+
+ci_bbstp = prctile(b_bstp, [100*alpha/2, 100*(1-alpha/2)]);  % Intervalo sgn percentiles
+
+% Wild cluster bootstrap
+wild_bstp = zeros(B, 1);                        % Vector para almacenar betas
+for i = 1:B                                     % Remuestreo 2000 veces  
+    y_wild = y;                                 % Parto desde el Y original                           
+    for j = 1:nc                                % Resampleo para cada cluster
+        cluster_ind = find(id == j);            % Busco obs del cluster
+        resample_factor = 2 * (rand() > 0.5) - 1;  % Factor de remuestreo aleatoreo
+        y_wild(cluster_ind) = y(cluster_ind) * resample_factor;   % Nueva muestra = Variabilidad a los datos
+    end
+    b_wild = inv(x'*x)*(x'*y_wild);             % Estimación para la muestra 
+    wild_bstp(i) = b_wild(7);                   % Guardo parámetro de interés
+end
+
+ci_wbstp = prctile(wild_bstp, [100*alpha/2, 100*(1-alpha/2)]);      % Intervalo sgn percentiles
+
+
+%% 6. Pooled MCO especificación 2
+
+[b_po2, r_po2] = mco(x, y);                     % Coeficientes y residuos
+
+ee_std_po2 = ee_std(x, r_po2);                  % Errores
+ee_rob_po2 = ee_rob(x, r_po2);
+ee_clust_po2 = ee_clust(x, r_po2, id);
+
+%[ee_std_po2, ee_rob_po2, ee_clust_po2] = ee(x, r_po2, id);
+
+%% 7. Modelo within de efectos fijos 
+% Cómo incluyo efecto fijo de tiempo?? muy challa restar medias anuales??
+
+
+%--------------------------------------------------------------------------------------------------------
+% Funciones ---------------------------------------------------------------------------------------------
+%--------------------------------------------------------------------------------------------------------
+
+% Mínimos cuadrados ordinarios
 function [b, r] = mco(x, y)
     b = inv(x'*x)*(x'*y);           % beta, coeficientes
     r = y - x*b;                    % residuo
 end
 
+% Mínimos cuadrados generalizados factibles
+function [b, r] = fgls(x, y, om)
+    b = inv(x'*inv (om)*x)*(x'*inv(om)*y);
+    r = y - x*b;
+end
+
+% Errores estándar homocedásticos
 function [ee_std] = ee_std(x, r)
     n = length(x);                          % Num observaciones
     k = size(x,2);                          % Cant regresores
@@ -101,6 +184,7 @@ function [ee_std] = ee_std(x, r)
     ee_std = sqrt(diag(mvc));               % errores estándar 
 end
 
+% Errores robustos
 function [ee_rob] = ee_rob(x, r)
     n = length(x);                                      % Num observaciones
     k = size(x,2);                                      % Cant regresores
@@ -109,23 +193,41 @@ function [ee_rob] = ee_rob(x, r)
     ee_rob = sqrt(diag(mvc_w));                         % erroes robustos
 end
 
+% Errores clausterizados
 function [ee_clust] = ee_clust(x, r, id)
     n = length(x);                              % Num observaciones
     k = size(x,2);                              % Cant regresores
     nc = length(unique(id));                    % Num clusters
     srcl = zeros(nc,k);                         % Sumas x.*r por clust
-    for i = 1:k
-        srcl(:,i) = accumarray(id, (x(:,i))'.*r');
-    end
+        for i = 1:k
+            srcl(:,i) = accumarray(id, (x(:,i))'.*r');
+        end
     om = srcl'*srcl;                            % Estimador varianza error
     a = (nc/(nc-1))*((n-1)/(n-k));              % Ponderador 
     mvc_clust = a*inv(x'*x)*om*inv(x'*x);       % Matriz var-cov agrupada 
     ee_clust = sqrt(diag(mvc_clust));           % Errores clausterizados
 end
 
-function [b_rand, r_rand] = fgls(x, y, om)
-  b_rand = inv(x'*inv(om)*x)*(x'*inv(om)*y);
-  r_rand = y - (x * b_rand);
+% Errores estándar, robustos y agrupados en una sola función
+function [ee_std, ee_rob, ee_clust] = ee(x, r, id)
+    n = length(x);                          % Num observaciones
+    k = size(x,2);                          % Cant regresores
+    nc = length(unique(id));                % Num clusters
+    %---------------------------------
+    s2 = (1/(n-k))*(r'*r);                  % Estimador varianza del error
+    mvc = s2*inv(x'*x);                     % Matriz varianza covarianza
+    ee_std = sqrt(diag(mvc));               % Errores estándar 
+    %--------------------------------
+    d = diag(r.^2);                                     % Matriz diagonal 
+    mvc_w = (n/(n-k))*inv(x'*x)*(x'*d*x)*inv(x'*x);     % Matriz de white 
+    ee_rob = sqrt(diag(mvc_w));                         % Erroes robustos
+    %---------------------------------
+    srcl = zeros(nc,k);                         % Sumas x.*r por clust
+        for i = 1:k
+            srcl(:,i) = accumarray(id, (x(:,i))'.*r');
+        end
+    om = srcl'*srcl;                            % Estimador varianza error
+    a = (nc/(nc-1))*((n-1)/(n-k));              % Ponderador 
+    mvc_clust = a*inv(x'*x)*om*inv(x'*x);       % Matriz var-cov agrupada 
+    ee_clust = sqrt(diag(mvc_clust));           % Errores clausterizados
 end
-
-
