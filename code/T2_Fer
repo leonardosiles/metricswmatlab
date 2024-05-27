@@ -69,9 +69,9 @@ ee_clust_w = ee_clust(xw, r_w, id);
 
 %[ee_std_w, ee_rob_w, ee_clust_w] = ee(x, r_w, id);
 
-%% Vía dummys (calcula los efectos fijos) -- algo no corre bien aquí matriz no singular
+%% Vía dummys (calcula los efectos fijos) 
 dum = dummyvar(id);
-xd = [x dum];
+xd = [x(:,4:7) dum];
 
 [b_d, r_d] = mco(xd, y);                        % Coeficientes y residuos
 
@@ -129,15 +129,21 @@ end
 
 ci_bbstp = prctile(b_bstp, [100*alpha/2, 100*(1-alpha/2)]);  % Intervalo sgn percentiles
 
-% Wild cluster bootstrap
+% Wild cluster bootstrap -------- intenté arreglar esto, lo logré y dsp me lo heché :c
 wild_bstp = zeros(B, 1);                        % Vector para almacenar betas
 for i = 1:B                                     % Remuestreo 2000 veces  
-    y_wild = y;                                 % Parto desde el Y original                           
-    for j = 1:nc                                % Resampleo para cada cluster
+    r_wild = r_po;                              % Parto desde el r original                           
+    for j = 1:nc                                % Resampleo r para cada cluster
         cluster_ind = find(id == j);            % Busco obs del cluster
-        resample_factor = 2 * (rand() > 0.5) - 1;  % Factor de remuestreo aleatoreo
-        y_wild(cluster_ind) = y(cluster_ind) * resample_factor;   % Nueva muestra = Variabilidad a los datos
+        aux = binornd(1,(sqrt(5)-1)/(2*sqrt(5)),[n 1]);    % Factor de resampleo Mammen 1993
+        if aux == 1 
+            resample_factor = (sqrt(5) + 1) / 2;
+        else
+            resample_factor = (sqrt(5) - 1) / 2;
+        end
+        r_wild(cluster_ind) = r_po(cluster_ind) * resample_factor;   
     end
+    y_wild = x*b_po + r_wild;                   % Obtengo y resampleado     
     b_wild = inv(x'*x)*(x'*y_wild);             % Estimación para la muestra 
     wild_bstp(i) = b_wild(7);                   % Guardo parámetro de interés
 end
