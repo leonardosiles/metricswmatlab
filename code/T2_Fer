@@ -69,7 +69,7 @@ ee_clust_w = ee_clust(xw, r_w, id);
 
 %[ee_std_w, ee_rob_w, ee_clust_w] = ee(x, r_w, id);
 
-%% Vía dummys (calcula los efectos fijos) 
+%% 4. Estimador efectos fijos vía dummys (calcula los efectos fijos) 
 dum = dummyvar(id);
 xd = [x(:,4:7) dum];
 
@@ -86,9 +86,9 @@ ee_clust_d = ee_clust(xd, r_d, id);
 sig_e2 = (1/(n-nc-k)) .* sum(r_w.^2);           
 sig_u2 = (1/(nc-k)) .* (sum(r_bt.^2)) - (1/t)*sig_e2;
                                 
-aux = ones(n,1);                                % Matriz var-cov
+dum = dummyvar(id);	                            % Dummys por cluster
 I = eye(n,n);
-mvc_re = (aux*aux').*sig_u2 + I.*sig_e2;        % sig_e2*omega
+mvc_re = (dum*dum').*sig_u2 + I.*sig_e2;        % Matriz var-cov = sig_e2*omega
 om_re = mvc_re ./ sig_e2;
 
 [b_re, r_re] = fgls(x, y, om_re);               % Coeficientes y residuos
