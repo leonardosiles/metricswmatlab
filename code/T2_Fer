@@ -1,7 +1,3 @@
-Holiis, no estoy segura si estoy subiendo esto bien xdd
-Dejo lo que llevo, iré actualizando a medida que avance
-Primera dejo el main de la tarea y al final dejo las funciones
-
 % ----------------------------------------------------------------------- 
 %                       TAREA 2 - ECONOMETRÍA I - ME
 %        Grupo 3: F. Anguita, J. Aránguiz, N. Espinoza & L. Siles
@@ -22,106 +18,99 @@ x = [data.educ data.black data.hisp data.exper data.expersq data.married data.un
 year = [data.year];
 id = repelem(1:length(unique(data.nr)), 8)';
 
-n = length(y);                                  % Num observaciones
-k  = size(x,2);                                 % Num regresores
-nc = length(unique(id));                        % Num cluster
-t = length(unique(year));                       % Num periodos
+n = length(y);                                      % Num observaciones
+k  = size(x,2);                                     % Num regresores
+nc = length(unique(id));                            % Num cluster
+t = length(unique(year));                           % Num periodos
 
 %% 1. Pooled MCO
 
-[b_po, r_po] = mco(x, y);                       % Coeficientes y residuos
+[b_po, r_po] = mco(x, y);                           % Coeficientes y residuos
 
-ee_std_po = ee_std(x, r_po);                    % Errores
+ee_std_po = ee_std(x, r_po);                        % Errores
 ee_rob_po = ee_rob(x, r_po);
 ee_clust_po = ee_clust(x, r_po, id);
 
-%[ee_std_po, ee_rob_po, ee_clust_po] = ee(x, r_po, id);
-
 %% 2. Estimador Between
 
-ym = accumarray(id, y, [], @mean);              % Transfromación between
+ym = accumarray(id, y, [], @mean);                   % Transfromación between
 for i = 1:size(x,2)
     xm(:,i) = accumarray(id, x(:,i), [], @mean);
 end
 id_bt = (1:length(ym))';                    
 
-[b_bt, r_bt] = mco(xm, ym);                     % Coeficientes y residuos
+[b_bt, r_bt] = mco(xm, ym);                          % Coeficientes y residuos
 
-ee_std_bt = ee_std(xm, r_bt);                   % Errores
+ee_std_bt = ee_std(xm, r_bt);                        % Errores
 ee_rob_bt = ee_rob(xm, r_bt);
-ee_clust_bt = ee_clust(xm, r_bt, id_bt);
+%ee_clust_bt = ee_clust(xm, r_bt, id_bt);            % No hay clusters
 
-%[ee_std_bt, ee_rob_bt, ee_clust_bt] = ee(x, r_bt, id);
+%% 4. Estimador efectos fijos within
 
-%% 4. Estimador within
-
-yw = y - ym(id);                                % Transformación within
+yw = y - ym(id);                                     % Transformación within
 for i = 1:size(x,2)
-xw(:,i) = x(:,i) - xm(id,i);
+    xw(:,i) = x(:,i) - xm(id,i);
 end
-xw = xw(:,4:end);                               % Drop variables tiempo-invariantes
+xw = xw(:,4:end);                                    % Drop variables tiempo-invariantes
 
-[b_w, r_w] = mco(xw, yw);                       % Coeficientes y residuos
+[b_w, r_w] = mco(xw, yw);                            % Coeficientes y residuos
 
-ee_std_w = ee_std(xw, r_w);                     % Errores
+ee_std_w = ee_std(xw, r_w);                          % Errores
 ee_rob_w = ee_rob(xw, r_w);
 ee_clust_w = ee_clust(xw, r_w, id);
 
-%[ee_std_w, ee_rob_w, ee_clust_w] = ee(x, r_w, id);
 
-%% 4. Estimador efectos fijos vía dummys (calcula los efectos fijos) 
+%% 4. Estimador efectos fijos vía dummys (calcula los efectos fijos)
 dum = dummyvar(id);
 xd = [x(:,4:7) dum];
 
-[b_d, r_d] = mco(xd, y);                        % Coeficientes y residuos
+[b_d, r_d] = mco(xd, y);                             % Coeficientes y residuos
 
-ee_std_d = ee_std(xd, r_d);                     % Errores
+ee_std_d = ee_std(xd, r_d);                          % Errores
 ee_rob_d = ee_rob(xd, r_d);
 ee_clust_d = ee_clust(xd, r_d, id);
-
-%[ee_std_d, ee_rob_d, ee_clust_d] = ee(x, r_d, id);
 
 %% 3. Estimador de efectos aleatoreos (Hansen 17.2 p.629)
 
 sig_e2 = (1/(n-nc-k)) .* sum(r_w.^2);           
 sig_u2 = (1/(nc-k)) .* (sum(r_bt.^2)) - (1/t)*sig_e2;
                                 
-dum = dummyvar(id);	                            % Dummys por cluster
+dum = dummyvar(id);	
 I = eye(n,n);
-mvc_re = (dum*dum').*sig_u2 + I.*sig_e2;        % Matriz var-cov = sig_e2*omega
+mvc_re = (dum*dum').*sig_u2 + I.*sig_e2;              % MVC = sig_e2*omega
 om_re = mvc_re ./ sig_e2;
 
-[b_re, r_re] = fgls(x, y, om_re);               % Coeficientes y residuos
+[b_re, r_re] = fgls(x, y, om_re);                     % Coeficientes y residuos
 
-ee_std_re = ee_std(x, r_re);                    % Errores
+ee_std_re = ee_std(x, r_re);                          % Errores
 ee_rob_re = ee_rob(x, r_re);
 ee_clust_re = ee_clust(x, r_re, id);
 
-%[ee_std_re, ee_rob_re, ee_clust_re] = ee(x, r_re, id);
-
 %% 5. Intervalos de confianza para el premio a pertenecer a un sindicato
 
-alpha = 0.05;                                   % Nivel de significancia
-z = norminv(1 - alpha/2);                       % Valor crítico
-B = 2000;                                       % Núme remuestreo
+rng(7)
+alpha = 0.05;                                         % Nivel de significancia
+z = norminv(1 - alpha/2);                             % Valor crítico
+B = 2000;                                             % Num remuestreos
 
-b_union = b_po(7);                              % Premio por estar sindicalizado
-ee_union = ee_std_po(7);                        % Error estándar variable sindicato
+b_union = b_po(7);                                    % Premio por estar sindicalizado
+ee_union = ee_rob_po(7);                              % Error estándar variable sindicato
 
 % Teoría asíntótica
-ci_ta = [b_union - z*ee_union, b_union + z*ee_union];     % Intervalo
+ci_ta = [b_union - z*ee_union, b_union + z*ee_union];   % Intervalo
+
 
 % Block bootstrap
-b_bbstp= zeros(B, 1);                           % Vector para almacenar betas
-for i = 1:B                                     % Remuestreo 2000 veces
+b_bbstp= zeros(B, 1);                                 % Vector para almacenar betas
+for i = 1:B                                           % Remuestreo 2000 veces
     ind_remuestreo = [];
-    for j = 1:nc                                % índices para remuestreo por bloque
-        start = randi([1, n - t + 1]);          % índice de inicio  
-        block = start:(start + t - 1);          % Índice para cada obs del bloque
-        ind_remuestreo = [ind_remuestreo; block'];  % Guanda en vector de índices general
+    for j = 1:nc                                      % índices para remuestreo por bloque
+        start = randi([1, n - t + 1]);                % índice de inicio  
+        block = start:(start + t - 1);                % Índice para cada obs del bloque
+        ind_remuestreo = [ind_remuestreo; block'];    % Guanda en vector de índices general
     end
-    ind_remuestreo = ind_remuestreo(1:n);       % Asegurar tamaño correcto
-    x_block = x(ind_remuestreo, :);             % Variable resampleada según los índices
+    ind_remuestreo = ind_remuestreo(1:n);             % Asegurar tamaño correcto
+    x_block = x(ind_remuestreo, :);                   % Variable resampleada según los índices
     y_block = y(ind_remuestreo);
     b_block = inv(x_block'*x_block)*(x_block'*y_block);   % Estimación para la nueva muestra
     b_bstp(i) = b_block(7);                               % Guardo el parámetro de interés
@@ -129,41 +118,131 @@ end
 
 ci_bbstp = prctile(b_bstp, [100*alpha/2, 100*(1-alpha/2)]);  % Intervalo sgn percentiles
 
-% Wild cluster bootstrap -------- intenté arreglar esto, lo logré y dsp me lo heché :c
-wild_bstp = zeros(B, 1);                        % Vector para almacenar betas
-for i = 1:B                                     % Remuestreo 2000 veces  
-    r_wild = r_po;                              % Parto desde el r original                           
-    for j = 1:nc                                % Resampleo r para cada cluster
-        cluster_ind = find(id == j);            % Busco obs del cluster
-        aux = binornd(1,(sqrt(5)-1)/(2*sqrt(5)),[n 1]);    % Factor de resampleo Mammen 1993
-        if aux == 1 
+% Wild cluster bootstrap 
+wild_bstp = zeros(B, 1);                              % Vector para almacenar betas
+for i = 1:B                                           % Remuestreo 2000 veces  
+    r_wild = r_po;                                    % Parto desde el r original                           
+    for j = 1:nc                                      % Resampleo r para cada cluster
+        cluster_ind = find(id == j);                  % Busco obs del cluster
+        aux = rand();                                 % Factor de resampleo Mammen 1993
+        if aux < (sqrt(5)-1)/(2*sqrt(5))
             resample_factor = (sqrt(5) + 1) / 2;
         else
             resample_factor = (sqrt(5) - 1) / 2;
         end
-        r_wild(cluster_ind) = r_po(cluster_ind) * resample_factor;   
+        r_wild(cluster_ind) = r_po(cluster_ind) * resample_factor;  
+        y_wild = x*b_po + r_wild;
     end
-    y_wild = x*b_po + r_wild;                   % Obtengo y resampleado     
-    b_wild = inv(x'*x)*(x'*y_wild);             % Estimación para la muestra 
-    wild_bstp(i) = b_wild(7);                   % Guardo parámetro de interés
+    b_wild = inv(x'*x)*(x'*y_wild);                   % Estimación para la muestra 
+    wild_bstp(i) = b_wild(7);                         % Guardo parámetro de interés
 end
 
-ci_wbstp = prctile(wild_bstp, [100*alpha/2, 100*(1-alpha/2)]);      % Intervalo sgn percentiles
+ci_wbstp = prctile(wild_bstp, [100*alpha/2, 100*(1-alpha/2)]);      % Intervalo
 
 
 %% 6. Pooled MCO especificación 2
 
-[b_po2, r_po2] = mco(x, y);                     % Coeficientes y residuos
+v = [data.d81 data.d82 data.d83 data.d84 data.d85 data.d86 data.d87];
+x2 = [x v];                                           % Agrego matriz de dummys a regresores
 
-ee_std_po2 = ee_std(x, r_po2);                  % Errores
-ee_rob_po2 = ee_rob(x, r_po2);
-ee_clust_po2 = ee_clust(x, r_po2, id);
+[b_po2, r_po2] = mco(x2, y);                          % Coeficientes y residuos
 
-%[ee_std_po2, ee_rob_po2, ee_clust_po2] = ee(x, r_po2, id);
+ee_std_po2 = ee_std(x2, r_po2);                       % Errores
+ee_rob_po2 = ee_rob(x2, r_po2);
+ee_clust_po2 = ee_clust(x2, r_po2, id);
 
-%% 7. Modelo within de efectos fijos 
-% Cómo incluyo efecto fijo de tiempo?? muy challa restar medias anuales??
+%% 7. Modelo within de efectos fijos de individuo y tiempo ---- no corre bien, cercano a singular
 
+xw2 = [xw v];
+                                % Drop variables tiempo-invariantes
+for i = 1:7                                  % Transformación within
+    xm2(:,i) = accumarray(id, x2(:,i), [], @mean);
+    xw2(:,i) = x2(:,i) - xm2(id,i);
+end
+xw2 = xw2(:, 4:end);  
+
+[b_w2, r_w2] = mco(xw2, yw);                          % Coeficientes
+
+ee_std_w2 = ee_std(x2, r_w2);                         % Errores
+ee_rob_w2 = ee_rob(x2, r_w2);
+ee_clust_w2 = ee_clust(x2, r_w2, id);
+
+%% 8. Retornos a la educación a lo largo del timepo
+
+ed = [data.educ];
+x8 = [x2 v.*ed];                                      % Agrego interacciones a regresores
+
+k8  = size(x8,2);                                     % Cambia cantidad de regresores
+
+[b8, r8] = mco(x8, y);                                % Estimo nuevo modelo
+ee_std_8 = ee_std(x8, r8);
+
+% HO: b8 = b9 = b10 = b11 = b12 = b13 = b14 (=0?)
+q = 7;                                                % Num hipótesis
+c = zeros(q,1);                                       % Vector hipótesis
+R = zeros(k8,q);                                      % Matriz R
+for i = 1:q                             
+    R(7+i,i) = 1;
+end
+                              
+%s2 = (1/(n-knew))*(rnew'*rnew);                      % Recupero matriz var-cov                
+%mvcnew = s2*inv(xnew'*xnew); 
+
+d = diag(r8.^2);                                      % Recupera matriz var-cov robusta 
+mvc8 = (n/(n-k))*inv(x'*x)*(x'*d*x)*inv(x'*x);        
+
+testF1 = ((R'*b8 - c)' * inv(R'* mvc8 *R) * (R'*b8 - c))/q;    % Test F
+p_value1 = 1 - fcdf(testF, q, n-k8);                           % Pvalue
+
+
+%% 9. Premio sindicato varía por raza
+
+un = [data.union];
+hisp = [data.hisp];
+black = [data.black];
+x9 = [x2 hisp.*un black.*un];                        % Agrego interaciones a regresores
+
+k9  = size(x9, 2);                                   % Cambia cantidad de regresores
+
+[b9, r9] = mco(x9, y);                               % Estimo modelo
+ee_std_9 = ee_std(x9, r9);
+
+% HO: b8 = b9 
+q = 2;                                               % Cantidad hipótesis
+c = zeros(q,1);                                      % Vector C
+R = zeros(k9,q);                                     % Matriz R
+for i = 1:q
+    R(7+i,i) = 1;
+end
+                              
+s2 = (1/(n-k9))*(r9'*r9);                            % Recupero matriz var-cov           
+mvc9 = s2*inv(x9'*x9); 
+
+d = diag(r.^2);                                      % Recupero matriz var-cov robusta 
+mvc9 = (n/(n-k9))*inv(x'*x)*(x'*d*x)*inv(x'*x);
+
+testF2 = ((R'*b9 - c)' * inv(R'* mvc9 *R) * (R'*b9 - c))/q;     % Test F
+p_value2 = 1 - fcdf(testF, q, n-k9);                            % Pvalue
+
+
+%% 10.
+
+unf = zeros(n, 1);
+for i = 1:n-1
+    if rem(i, t) == 0
+        continue;
+    end
+    unf(i) = un(i+1);  
+end
+aa = [id year un unf]; 
+xf = [x2 unf];
+
+% Estimamos por fe -> mismo problema que en 7
+for i = 1:size(xf,2)                                  % Transformación within
+    xmf(:,i) = accumarray(id, xf(:,i), [], @mean);
+    xwf(:,i) = xf(:,i) - xmf(id,i);
+end
+xwf = xwf(:, 4:end);                                  % Drop variables tiempo-invariantes
 
 %--------------------------------------------------------------------------------------------------------
 % Funciones ---------------------------------------------------------------------------------------------
