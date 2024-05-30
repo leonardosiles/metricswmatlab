@@ -212,7 +212,7 @@ b_cluster = zeros(n_iter,1);
 tic
 for r=1:n_iter
     index = randsample(id,N,true);
-    
+
     Y_w = zeros(n,1); 
     X_w = zeros(n,K);
     ehat_w = zeros(n,1);
@@ -263,6 +263,7 @@ end
 % Definimos una nueva matriz de regresores con los efectos fijos anuales
 Xv = [X v];
 
+% Estimador between
 bhat2_pool = (Xv'*Xv)^(-1)*Xv'*Y;
 display(bhat2_pool(1:7)');
 
@@ -343,29 +344,26 @@ for i=1:G
     aux = X_g'*(ehat_g*ehat_g')*X_g;
     Omega = Omega + aux;
 end
-Var_b = (Xv_int_tilde'*Xv_int_tilde)^(-1)*Omega*(Xv_int_tilde'*Xv_int_tilde)^(-1);
+Var_b = (G/(G-1))*(n-1)/(n-K)*(Xv_int_tilde'*Xv_int_tilde)^(-1)*Omega*(Xv_int_tilde'*Xv_int_tilde)^(-1);
 %ee_interac_cl = diag(VarB_cluster).^(1/2);
 
 %%%%%%%%%%%%%%%%%%%%%%%%   TEST DE HIPÓTESIS   %%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Calculamos el promedio de los coeficientes de cada interacción
-%mean_b = mean(bhat_interac((end-6):end));
-
 % Definimos el q del test conjunto
 q = 7;
 
-% Repetimos este promedio para crear el vector c
+% Repetimos Definimos el vector c
 c = repelem(0,q,1);
 
 % Calculamos R'b
 R = [zeros(11,7); eye(7)];
 Rb = R'*bhat_interac;
 
-% Calculamos el estadístico F del test conjunto
-F_statistic = (Rb-c)'*(R'*Var_b*R)^(-1)*(Rb-c) /q;
+% Calculamos el estadístico Generalizado de Wald del test conjunto
+%F_statistic = (Rb-c)'*(R'*Var_b*R)^(-1)*(Rb-c) /q;
 GW_statistic = (Rb-c)'*(R'*Var_b*R)^(-1)*(Rb-c);
 
 % Calculamos el p-value correspondiente
-p_value = 1 - fcdf(F_statistic,q,n-K);
+%p_value = 1 - fcdf(F_statistic,q,n-K);
 p_value = 1 - chi2cdf(GW_statistic,q);
 
 % Mostramos el resultado
@@ -417,7 +415,7 @@ for i=1:G
     aux = X_g'*(ehat_g*ehat_g')*X_g;
     Omega = Omega + aux;
 end
-Var_b = (Xv_int_tilde'*Xv_int_tilde)^(-1)*Omega*(Xv_int_tilde'*Xv_int_tilde)^(-1);
+Var_b = (G/(G-1))*(N-1)/(N-K)*(Xv_int_tilde'*Xv_int_tilde)^(-1)*Omega*(Xv_int_tilde'*Xv_int_tilde)^(-1);
 %ee_interac_cl = diag(VarB_cluster).^(1/2);
 
 %%%%%%%%%%%%%%%%%%%%%%%%   TEST DE HIPÓTESIS   %%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -432,14 +430,14 @@ c = repelem(0,q,1);
 R = [zeros(11,2); eye(2)];
 Rb = R'*bhat_interac2;
 
-% Calculamos el estadístico F del test conjunto
-F_statistic = (Rb-c)'*(R'*Var_b*R)^(-1)*(Rb-c) /q;
+% Calculamos el estadístico Generalizado de Wald del test conjunto
+GW_statistic = (Rb-c)'*(R'*Var_b*R)^(-1)*(Rb-c);
 
 % Calculamos el p-value correspondiente
-p_value = 1 - fcdf(F_statistic,q,n-K);
+p_value = 1 - chi2cdf(GW_statistic,q);
 
 % Mostramos el resultado
-table(F_statistic, p_value)
+table(GW_statistic, p_value)
 
 %% 10. Agregando un adelanto a la ecuación 2
 % Primero debemos la nueva matriz de regresores que incluya el vector con 
