@@ -291,8 +291,10 @@ for i=1:n
     Xv_tilde(i,:) = Xv_fe(i,:) - aux_meanX(i,:);
 end
 
-bhat2_fe = (Xv_tilde'*Xv_tilde)^(-1)*Xv_tilde'*Y_tilde;
-display(bhat2_fe(1:4)')
+%bhat2_fe = (Xv_tilde'*Xv_tilde)^(-1)*Xv_tilde'*Y_tilde;
+[bhat2_fe, ~, y_ddot, x_ddot] = twfe(Y, X, ids, year);
+display(bhat2_fe')
+
 
 % Calculamos cada error estándar con la función que creamos previamente
 [ee2_fe,ee2_r_fe,ee2_cl_fe] = errores_est(Y_tilde,Xv_tilde,N);
