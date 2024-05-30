@@ -31,7 +31,7 @@ for i=1:G
     aux = X_g'*(ehat_g*ehat_g')*X_g;
     Omega = Omega + aux;
 end
-VarB_cluster = (X'*X)^(-1)*Omega*(X'*X)^(-1);
+VarB_cluster = (G/(G-1))*(N-1)/(N-G-K)*(X'*X)^(-1)*Omega*(X'*X)^(-1);
 ee_cluster = diag(VarB_cluster).^(1/2);
 
 end
