@@ -9,7 +9,7 @@
 
 %% 0. Importación de base
 clear;clc;
-cd("C:\Users\jaime\Desktop\FEN\SEMESTRE 9 - OTOÑO 2024 - ME1\Econometría I\Tareas\Tarea2");
+cd("C:\Users\jaime\Desktop\FEN\SEMESTRE 9 - OTOÑO 2024 - ME1\Econometría I\Tareas\Tarea2\T2_Grupo3");
 addpath("datos");
 addpath("funciones");
 
@@ -279,20 +279,21 @@ for i=1:N
 end
 
 % Eliminamos los regresores que no varían en el tiempo
-Xv_fe = Xv(:,4:end);
+% Además eliminamos la variable de experiencia por multicolinealidad
+Xv_fe = Xv(:,5:end);
 
 % Hacemos la transformación within
 Y_tilde = zeros(n,1);
 Xv_tilde = zeros(n,size(Xv_fe,2));
 aux_meanY = repelem(Y_mean,T);
-aux_meanX = repelem(Xv_mean(:,4:end),T,1);
+aux_meanX = repelem(Xv_mean(:,5:end),T,1);
 for i=1:n
     Y_tilde(i) = Y(i) - aux_meanY(i);
     Xv_tilde(i,:) = Xv_fe(i,:) - aux_meanX(i,:);
 end
 
 bhat2_fe = (Xv_tilde'*Xv_tilde)^(-1)*Xv_tilde'*Y_tilde;
-display(bhat2_fe(1:4)')
+display(bhat2_fe(1:3)')
 
 % Calculamos cada error estándar con la función que creamos previamente
 [ee2_fe,ee2_r_fe,ee2_cl_fe] = errores_est(Y_tilde,Xv_tilde,N);
@@ -315,12 +316,12 @@ for i=1:N
     Xv_int_mean(i,:) = mean(Xv_int((T*i-(T-1)):(T*i),:),1);
 end
 
-% Eliminamos los regresores que no varían en el tiempo
-Xv_int_fe = Xv_int(:,4:end);
+% Eliminamos los regresores que no varían en el tiempo y experiencia
+Xv_int_fe = Xv_int(:,5:end);
 
 % Hacemos la transformación within para el regresor (para Y ya la tenemos)
 Xv_int_tilde = zeros(n,size(Xv_int_fe,2));
-aux_meanX = repelem(Xv_int_mean(:,4:end),T,1);
+aux_meanX = repelem(Xv_int_mean(:,5:end),T,1);
 for i=1:n
     Xv_int_tilde(i,:) = Xv_int_fe(i,:) - aux_meanX(i,:);
 end
@@ -344,8 +345,7 @@ for i=1:G
     aux = X_g'*(ehat_g*ehat_g')*X_g;
     Omega = Omega + aux;
 end
-Var_b = (G/(G-1))*(n-1)/(n-K)*(Xv_int_tilde'*Xv_int_tilde)^(-1)*Omega*(Xv_int_tilde'*Xv_int_tilde)^(-1);
-%ee_interac_cl = diag(VarB_cluster).^(1/2);
+Var_b = (G/(G-1))*(Xv_int_tilde'*Xv_int_tilde)^(-1)*Omega*(Xv_int_tilde'*Xv_int_tilde)^(-1);
 
 %%%%%%%%%%%%%%%%%%%%%%%%   TEST DE HIPÓTESIS   %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Definimos el q del test conjunto
@@ -355,15 +355,13 @@ q = 7;
 c = repelem(0,q,1);
 
 % Calculamos R'b
-R = [zeros(11,7); eye(7)];
+R = [zeros(10,7); eye(7)];
 Rb = R'*bhat_interac;
 
 % Calculamos el estadístico Generalizado de Wald del test conjunto
-%F_statistic = (Rb-c)'*(R'*Var_b*R)^(-1)*(Rb-c) /q;
 GW_statistic = (Rb-c)'*(R'*Var_b*R)^(-1)*(Rb-c);
 
 % Calculamos el p-value correspondiente
-%p_value = 1 - fcdf(F_statistic,q,n-K);
 p_value = 1 - chi2cdf(GW_statistic,q);
 
 % Mostramos el resultado
@@ -387,11 +385,11 @@ for i=1:N
 end
 
 % Eliminamos los regresores que no varían en el tiempo
-Xv_int_fe = Xv_int(:,4:end);
+Xv_int_fe = Xv_int(:,5:end);
 
 % Hacemos la transformación within para el regresor (para Y ya la tenemos)
 Xv_int_tilde = zeros(n,size(Xv_int_fe,2));
-aux_meanX = repelem(Xv_int_mean(:,4:end),T,1);
+aux_meanX = repelem(Xv_int_mean(:,5:end),T,1);
 for i=1:n
     Xv_int_tilde(i,:) = Xv_int_fe(i,:) - aux_meanX(i,:);
 end
@@ -415,8 +413,7 @@ for i=1:G
     aux = X_g'*(ehat_g*ehat_g')*X_g;
     Omega = Omega + aux;
 end
-Var_b = (G/(G-1))*(N-1)/(N-K)*(Xv_int_tilde'*Xv_int_tilde)^(-1)*Omega*(Xv_int_tilde'*Xv_int_tilde)^(-1);
-%ee_interac_cl = diag(VarB_cluster).^(1/2);
+Var_b = (G/(G-1))*(Xv_int_tilde'*Xv_int_tilde)^(-1)*Omega*(Xv_int_tilde'*Xv_int_tilde)^(-1);
 
 %%%%%%%%%%%%%%%%%%%%%%%%   TEST DE HIPÓTESIS   %%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Testearemos la hipótesis nula de que los b de las interacciones son = 0
@@ -427,7 +424,7 @@ q = 2;
 c = repelem(0,q,1);
 
 % Calculamos R'b
-R = [zeros(11,2); eye(2)];
+R = [zeros(10,2); eye(2)];
 Rb = R'*bhat_interac2;
 
 % Calculamos el estadístico Generalizado de Wald del test conjunto
@@ -470,13 +467,13 @@ for i=1:N
 end
 
 % Eliminamos los regresores que no varían en el tiempo
-Xv_adel_fe = Xv_adel(:,4:end);
+Xv_adel_fe = Xv_adel(:,5:end);
 
 % Hacemos la transformación within
 Y_tilde = zeros(n2,1);
 Xv_tilde = zeros(n2,size(Xv_adel_fe,2));
 aux_meanY = repelem(Y_adel_mean,T2);
-aux_meanX = repelem(Xv_adel_mean(:,4:end),T2,1);
+aux_meanX = repelem(Xv_adel_mean(:,5:end),T2,1);
 for i=1:n2
     Y_tilde(i) = Y_adel(i) - aux_meanY(i);
     Xv_tilde(i,:) = Xv_adel_fe(i,:) - aux_meanX(i,:);
@@ -484,9 +481,8 @@ end
 
 % Calculamos el estimador within
 bhat2_adel = (Xv_tilde'*Xv_tilde)^(-1)*Xv_tilde'*Y_tilde;
-display([bhat2_adel(1:4)' bhat2_adel(end)])
+display([bhat2_adel(1:3)' bhat2_adel(end)])
 
 % Calculamos cada error estándar con la función que creamos previamente
 [ee2_adel,ee2_adel_r,ee2_adel_cl] = errores_est(Y_tilde,Xv_tilde,N);
-
 
