@@ -1,0 +1,192 @@
+clear;clc
+%% Simulación de datos
+N=1000;
+b0 = 1;
+b1 = 2;
+b2 = 5;
+
+a0 = -4;
+a1 = [0.1,0.5,1,5,10];
+a2 = 3;
+
+
+rng(1);
+v = rand(N,1);
+u = randn(N,1);
+e = randn(N,1);
+W = normrnd(2,1,N,1);
+
+Z = zeros(N,1);
+for i = 1:N
+    if v(i) < 0.8
+        Z(i) = 1;
+    else
+        Z(i) = 0;
+    end
+    if i == N
+        clear i;
+    end
+end
+
+X = zeros(N,5);
+Y = cell(1,5);
+for i = 1:5
+    X(:,i) = a0 + a1(i) * Z + a2 * W + u;
+    Y{i} = b0 + b1 * X(:,i) + b2 * W + e;
+    if i == 5
+       clear i ;
+    end
+end
+
+o = ones(N,1); % creamos un vector con las X + constante en cada caso
+x = cell(1,5);
+for i = 1:5
+    xi = [o,X(:,i)];
+    x{i} = xi;
+
+    if i == 5
+        clear xi i o X;
+    end
+end
+
+%% 1 MCO
+
+B = zeros(2,5);
+for i = 1:5
+    xi = x{i};
+    xy = xi' * Y{i};
+    B(:,i) = ( xi' * xi ) \ xy;
+    if i == 5
+        clear i xi xy;
+    end
+end
+
+
+% Errores homocedásticos
+s2 = zeros(5,1);
+Errores_h = zeros(2,5);
+for i = 1:5
+    xi = x{i};
+    res = Y{i} - xi * B(:,i);
+    s2(i) = (res' * res) / (N-1);
+
+    Errores_h(:,i) = sqrt( diag( s2(i) * inv(xi' * xi) ) ); % Homo
+
+    if i == 5
+        clear i s2 res xi;
+    end
+
+end
+
+Errores_r = zeros(2,5);
+adj = N/(N-1);
+for i = 1:5
+    xi = x{i};
+    res = Y{i} - xi * B(:,i);
+    vi = (xi' * xi) \ xi' * diag(res.^2) * xi / (xi' * xi);
+    Errores_r(:,i) = sqrt(diag(adj * vi));
+
+    if i == 5
+        clear i xi res vi adj;
+    end
+
+end
+
+
+% Tablas
+row = ["Constante", "\beta_1"]; 
+col = ["(1)", "(2)", "(3)", "(4)", "(5)"];
+Errores_h = array2table(Errores_h, "RowNames", row, "VariableNames", col);
+Errores_r = array2table(Errores_r, "RowNames", row, "VariableNames", col);
+
+clear row col;
+
+%% Monte Carlo
+
+clearvars -except a0 a1 a2 b0 b1 b2 N; clc
+mco = zeros(N,5);
+o = ones(N,1);
+
+rng(2)
+
+for s = 1:N
+    v = rand(N,1);
+    u = randn(N,1);
+    e = randn(N,1);
+    W = normrnd(2,1,N,1);
+
+    Z = zeros(N,1);
+    for i = 1:N
+        if v(i) < 0.8
+            Z(i) = 1;
+        else
+            Z(i) = 0;
+        end
+        if i == N
+            clear i;
+        end
+    end
+
+    X = zeros(N,5);
+    Y = cell(1,5);
+    for i = 1:5
+        X(:,i) = a0 + a1(i) * Z + a2 * W + u;
+        Y{i} = b0 + b1 * X(:,i) + b2 * W + e;
+        if i == 5
+            clear i ;
+        end
+    end
+    x = cell(1,5);
+    for i = 1:5
+        xi = [o,X(:,i)];
+        x{i} = xi;
+
+        if i == 5
+            clear xi i X;
+        end
+    end
+
+    B = zeros(2,5);
+    for i = 1:5
+        xi = x{i};
+        xy = xi' * Y{i};
+        B(:,i) = ( xi' * xi ) \ xy;
+        if i == 5
+            clear i xi xy;
+        end
+    end
+
+    mco(s,:) = B(2,:);
+    if s == N
+        clear o s u v W x Y Z;
+    end
+end
+
+
+hold on; 
+for i = 1:3
+    [f, x] = ksdensity(mco(:,i));
+    plot(x, f,'LineWidth',2);
+end
+hold off;
+
+xlabel('$\hat{\beta}_{1}^{MCO}$', 'Interpreter', 'latex');
+
+ylabel('Densidad','Interpreter', 'latex');
+title('Kernel Estimador MCO', 'Interpreter', 'latex');
+legend('$\alpha_1$', '$\alpha_2$', '$\alpha_3$', ...
+    'Interpreter', 'latex');
+
+
+hold on; 
+for i = 4:5
+    [f, xi] = ksdensity(mco(:,i));
+    plot(xi, f,'LineWidth',2);
+end
+hold off;
+
+xlabel('$\hat{\beta}_{1}^{MCO}$', 'Interpreter', 'latex');
+ylabel('Densidad','Interpreter', 'latex');
+title('Kernel Estimador MCO', 'Interpreter', 'latex');
+legend('$\alpha_4$', '$\alpha_5$', ...
+    'Interpreter', 'latex');
