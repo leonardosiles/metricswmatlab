@@ -45,20 +45,21 @@ X = [ones(N,1), X_i];
 
 beta_gorro = inv(X'*X)*X'*Y;
 
-e_gorro = Y - X*beta_gorro;
+u_gorro = Y - X*beta_gorro;
 
 K = length(beta_gorro);
 
 % Errores estándares.
 
-s = (e_gorro'*e_gorro)/(N-K);    % Varianza estimada del error.
-se = sqrt(s*diag(inv(X'*X)));    
+s = (u_gorro'*u_gorro)/(N-K);    % Varianza estimada del error.
+se = sqrt(s*diag(inv(X'*X)));    % Error estándar homocedástico.
+se_r = sqrt(diag(inv(X'*X)*(X'*((diag(u_gorro.^2))/(N-K))*X)*inv(X'*X))); % Error estándar robusto.
 
-Pregunta1 = [beta_gorro, se];
+Pregunta1 = table(beta_gorro, se, se_r, ...
+    'VariableNames', {'Coeficiente', 'SE', 'SE Robusto'});
 
-disp(['Para un \alpha_1 = ', num2str(a1), ', los coeficientes y errores estándares son:']);
-    disp(Pregunta1);
-
+disp(['Para un alpha_1 = ', num2str(a1), ', los coeficientes y errores estándares son:']);
+disp(Pregunta1);
 end
 
 
@@ -66,6 +67,13 @@ end
 
 % Se repite el mismo procedimiento de la pregunta a), pero considerando las
 % B = 1000 simulaciones para beta.
+
+for a1 = [0.1, 0.5, 1, 5, 10]
+
+X_i = a0 + a1*Z_i + u_i;    % Primera etapa.
+Y = b0 + b1*X_i + e_i;    % Segunda etapa.
+
+X = [ones(N,1), X_i];
 
 B = 1000;         % Número de simulaciones. 
 bm = NaN(2,B);    % Vector de coeficientes simulados por Montecarlo.
@@ -91,10 +99,77 @@ title('Curva de densidad estimada $\hat{\beta}_{1}$', 'Interpreter','latex');
 
 sesgo = mean(bm(2,:))- b1;
 
-disp('El sesgo de nuestro estimador de MCO será:');
+disp(['Para un alpha_1 = ', num2str(a1), ', el sesgo de nuestro estimador de MCO será:']);
     disp(sesgo);
+end
+
+% El sesgo se reduce con un alpha_1 más grande. 
+% Según la el manual de ivregress en stata: Both theoretical and Monte Carlo exercises indicate 
+% that the LIML estimator may yield less bias and confidence intervals with better coverage rates 
+% than the 2SLS estimator. See Poi (2006) and Stock, Wright, and Yogo (2002) (and the papers cited 
+% therein) for Monte Carlo evidence
 
 %% Pregunta 3: Estimación por MC2E.
+
+a1 = 0.1;
+
+% Primera etapa.
+
+X_i = a0 + a1*Z_i + a2*W_i + u_i;    
+
+Z = [ones(N,1), Z_i, W_i];        
+zeta_gorro = inv(Z'*Z)*Z'*X_i;
+
+% Test F. Utiliza errores estándares robustos. 
+
+u_gorro = Y - X*beta_gorro;
+
+K = length(zeta_gorro);
+
+se1_r = sqrt(diag(inv(Z'*Z)*(Z'*diag((u_gorro.^2)/(N-K))*Z)*inv(Z'*Z))); % Error estándar robusto (primera etapa)
+
+R = [0 1 0]';
+c = [0 0 0]';                      % Valor de la hipotesis a testear -> H0 : a1 = 0.
+q = 1;
+
+ftest= (R'*zeta_gorro - c)' * inv(se1_r(2,1)*R'*inv(Z'*Z)*R) * (R'*zeta_gorro - c);  % Teest F.
+p_value1 = 2 * (1 - fcdf(abs(ftest), q, N -K)); 
+
+% Segunda etapa.
+
+Y = b0 + b1*X_i + b2*W_i + e_i;    
+
+X = [ones(N,1), X_i, W_i];
+
+beta_gorro = inv(X'*X)*X'*Y;
+
+u_gorro = Y - X*beta_gorro;
+
+K = length(beta_gorro);
+
+% Errores estándares.
+
+s = (u_gorro'*u_gorro)/(N-K);    % Varianza estimada del error.
+se = sqrt(s*diag(inv(X'*X)));    % Error estándar homocedástico.
+se_r = sqrt(diag(inv(X'*X)*(X'*((diag(u_gorro.^2))/(N-K))*X)*inv(X'*X))); % Error estándar robusto.
+
+Primera_Etapa = table(zeta_gorro, se1_r, ...
+    'VariableNames', {'Coeficiente', 'SE Robusto'});
+
+Pregunta3 = table(beta_gorro, se, se_r, ...
+    'VariableNames', {'Coeficiente', 'SE', 'SE Robusto'});
+
+
+disp(['Para un alpha_1 = ', num2str(a1), ', la primera etapa tiene coeficientes y errores estándares:']);
+disp(Primera_Etapa);
+
+disp(['donde el Test F']);
+disp(Pregunta3);
+disp(['Para un alpha_1 = ', num2str(a1), ', los coeficientes y errores estándares son:']);
+disp(Pregunta3);
+
+
+
 
 
 
