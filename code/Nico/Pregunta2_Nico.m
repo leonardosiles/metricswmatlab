@@ -56,7 +56,7 @@ se = sqrt(s*diag(inv(X'*X)));
 
 Pregunta1 = [beta_gorro, se];
 
-disp(['Para un \alpha_1 = ', num2str(a1), ', los coeficientes y errores estándares son:']);
+disp(['Para un alpha_1 = ', num2str(a1), ', los coeficientes y errores estándares son:']);
     disp(Pregunta1);
 
 end
@@ -66,6 +66,13 @@ end
 
 % Se repite el mismo procedimiento de la pregunta a), pero considerando las
 % B = 1000 simulaciones para beta.
+
+for a1 = [0.1, 0.5, 1, 5, 10]
+
+X_i = a0 + a1*Z_i + u_i;    % Primera etapa.
+Y = b0 + b1*X_i + e_i;    % Segunda etapa.
+
+X = [ones(N,1), X_i];
 
 B = 1000;         % Número de simulaciones. 
 bm = NaN(2,B);    % Vector de coeficientes simulados por Montecarlo.
@@ -91,8 +98,11 @@ title('Curva de densidad estimada $\hat{\beta}_{1}$', 'Interpreter','latex');
 
 sesgo = mean(bm(2,:))- b1;
 
-disp('El sesgo de nuestro estimador de MCO será:');
+disp(['Para un alpha_1 = ', num2str(a1), ', el sesgo de nuestro estimador de MCO será:']);
     disp(sesgo);
+end
+
+% El sesgo se reduce con un alpha_1 más grande. 
 
 %% Pregunta 3: Estimación por MC2E.
 
