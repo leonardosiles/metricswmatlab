@@ -93,6 +93,9 @@ xlabel('Valor');
 ylabel('Densidad');
 title('Curva de densidad estimada $\hat{\beta}_{1}$', 'Interpreter','latex');
 
+filename = ['densidad_alpha_', num2str(a1), '.png'];
+    saveas(gcf, filename);
+
 % Con 1000 muestras aleatorias, el estimador es bien comportado. 
 
 % Sesgo.
@@ -173,6 +176,50 @@ end
 
 %% Pregunta 4: Distribución asintótica de MC2E.
 
+
+for a1 = [0.1, 0.5, 1, 5, 10]
+
+a1 = 0.1;
+
+X_i = a0 + a1*Z_i + a2*W_i + u_i;   % Primera etapa.
+Y = b0 + b1*X_i + b2*W_i + e_i;    % Segunda etapa.
+
+X = [ones(N,1), X_i, W_i];
+
+B = 1000;         % Número de simulaciones. 
+bm = NaN(3,B);    % Vector de coeficientes simulados por Montecarlo.
+
+for i = 1:B
+    m = randi(N,N,1);      % Vector de m pares aleatorios intependientes de tamaño n. 
+    bm(:,i) = (X(m,:)'*X(m,:))\(X(m,:)'*Y(m)) ;
+end
+bm = sort(bm,2);
+
+mean0 = mean(bm(1,:))
+mean1 = mean(bm(2,:))
+mean2 = mean(bm(3,:))
+
+% Calcular la densidad estimada
+[f,xi] = ksdensity(bm(2, :));
+
+% Graficar la curva de densidad estimada
+plot(xi,f,'LineWidth',2);
+xlabel('Valor');
+ylabel('Densidad');
+title('Curva de densidad estimada $\hat{\beta}_{1}$', 'Interpreter','latex');
+
+filename = ['densidad_alpha_', num2str(a1), '.png'];
+    saveas(gcf, filename);
+
+% Con 1000 muestras aleatorias, el estimador es bien comportado. 
+
+% Sesgo.
+
+sesgo = mean(bm(2,:))- b1;
+
+disp(['Para un alpha_1 = ', num2str(a1), ', el sesgo de nuestro estimador de MCO será:']);
+    disp(sesgo);
+end
 
 
 
