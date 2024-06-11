@@ -49,6 +49,9 @@ for i = 1:5
     end
 end
 
+data1 = {x, Y, Z, W}; 
+data1(2,:)={'x','Y','Z','W'};
+
 %% 1 MCO
 
 B = zeros(2,5);
@@ -103,7 +106,7 @@ clear row col;
 
 %% Monte Carlo
 
-clearvars -except a0 a1 a2 b0 b1 b2 N; clc
+clearvars -except a0 a1 a2 b0 b1 b2 N data1; clc
 mco = zeros(N,5);
 o = ones(N,1);
 
@@ -190,3 +193,61 @@ ylabel('Densidad','Interpreter', 'latex');
 title('Kernel Estimador MCO', 'Interpreter', 'latex');
 legend('$\alpha_4$', '$\alpha_5$', ...
     'Interpreter', 'latex');
+
+%% MC2E
+clearvars -except data1 N;
+
+% Recuperamos las variables de la simulación inicial
+o = ones(N,1) ;
+Z = [o,data1{1,3}];
+Y = data1{1,2};
+X = data1{1,1};
+iv = zeros(2,5); % vector donde guardamos estimaciones por IV
+F = zeros(1,5);
+Errores_h = zeros(2,5);
+Errores_r = zeros(2,5);
+adj = N/(N-1);
+
+for i = 1:5
+    % elegimos las variables de la iteración i
+    x = X{i};
+    x = x(:,2); % eliminamos la columna de 1s
+    y = Y{i};
+
+    % Primera Etapa de i
+    % Xi = gamma0 + gammaZi + vi
+
+    g = (Z' * Z) \ Z' * x;
+
+    % Estimación de xi (x estimado en iteración i)
+    xi = Z * g;
+
+    % Test F iteración i
+    res_e1 = x - xi;
+    s2e1 = (res_e1' * res_e1) /(N-1);
+    R = [0 1]';
+    Fi = (R' * g) * inv( s2e1 * R' * inv(Z' * Z) * R ) * (R' * g);
+
+    F(i) = Fi;
+
+    % Segunda etapa iteración i
+
+    xi = [o,xi]; % agregamos la constante
+
+    Biv = (xi' * xi) \ xi' * y;
+
+    iv(:,i) = Biv; % guardamos la estimación i
+
+
+    % Errores Homocedásticos
+    m = eye(N) - xi * inv(xi' * xi) * xi';
+    res = m * y;
+    s2 = (res' * res) / (N-1);
+    Errores_h(:,i) = sqrt( diag( s2 * inv(xi' * xi) ) );
+
+    % Errores robustos
+    vi = (xi' * xi) \ (xi' * diag(res.^2) * xi) / (xi' * xi);
+    Errores_r(:,i) = sqrt(diag(adj * vi));
+end
+
+clearvars -except iv F Errores_h Errores_r;
