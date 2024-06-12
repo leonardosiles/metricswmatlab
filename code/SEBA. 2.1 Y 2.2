@@ -1,0 +1,107 @@
+%% Pregunta 2
+%1
+% Parámetros dados
+rng(123);
+beta0 = 1;
+beta1 = 2;
+beta2 = 5; % Este valor no se usa porque Wi no es observable
+alpha0 = -4;
+alpha2 = 3;
+N = 1000;
+alphas = [0.1, 0.5, 1, 5, 10]; % Valores de alpha1 a considerar
+
+% Preparar matrices para almacenar resultados
+coeficientes = zeros(length(alphas), 2);
+errores_estandar = zeros(length(alphas), 2);
+
+for i = 1:length(alphas)
+    alpha1 = alphas(i);
+    
+    % Generación de datos
+    W = normrnd(2, 1, N, 1);  % Genera Wi ~ N(2,1)
+    ei = normrnd(0, 1, N, 1); % Genera ei ~ N(0,1)
+    ui = normrnd(0, 1, N, 1); % Genera ui ~ N(0,1)
+    vi = rand(N, 1);          % Genera νi ~ U[0,1]
+    Z = vi < 0.8;             % Zi = 1 si νi < 0.8
+
+    Xi = alpha0 + alpha1 * Z + alpha2 * W + ui; % Xi según ecuación
+    Y = beta0 + beta1 * Xi + beta2 * W + ei; % Yi según ecuación verdadero, pero ignoramos Wi
+
+    % Estimación usando MCO
+    X = [ones(N, 1), Xi]; % Matriz de regresores
+    b = (X' * X) \ (X' * Y); % Estimación de coeficientes
+
+    % Cálculo de los errores estándar
+    e = Y - X * b; % Residuos
+    sigma2 = sum(e.^2) / (N - 2); % Varianza del error
+    SE = sqrt(sigma2 * diag(inv(X' * X))); % Errores estándar de los coeficientes
+
+    % Guardar resultados
+    coeficientes(i, :) = b';
+    errores_estandar(i, :) = SE';
+end
+
+% Reporte de resultados
+disp('Resultados de la estimación usando MCO para diferentes valores de alpha1:');
+for i = 1:length(alphas)
+    disp(['alpha1 = ', num2str(alphas(i))]);
+    disp(['Coeficientes:']);
+    disp(['beta0 = ', num2str(coeficientes(i, 1))]);
+    disp(['beta1 = ', num2str(coeficientes(i, 2))]);
+    disp(['Errores estándar:']);
+    disp(['SE(beta0) = ', num2str(errores_estandar(i, 1))]);
+    disp(['SE(beta1) = ', num2str(errores_estandar(i, 2))]);
+    disp(' ');
+end
+
+%% 2
+num_simulations = 1000;
+
+% Preparar matrices para almacenar resultados
+beta1_hat = zeros(num_simulations, length(alphas));
+bias_beta1 = zeros(length(alphas), 1);
+
+for j = 1:length(alphas)
+    alpha1 = alphas(j);
+    for sim = 1:num_simulations
+        % Generación de datos
+        W = normrnd(2, 1, N, 1);  % Genera Wi ~ N(2,1)
+        ei = normrnd(0, 1, N, 1); % Genera ei ~ N(0,1)
+        ui = normrnd(0, 1, N, 1); % Genera ui ~ N(0,1)
+        vi = rand(N, 1);          % Genera νi ~ U[0,1]
+        Z = double(vi < 0.8);     % Define Zi = 1 si νi < 0.8
+
+        % Generación de Xi y Yi
+        Xi = alpha0 + alpha1 * Z + alpha2 * W + ui; % Genera Xi según la ecuación dada
+        Y = beta0 + beta1 * Xi + ei; % Genera Yi según la ecuación dada
+
+        % Estimación usando MCO
+        X = [ones(N, 1), Xi]; % Matriz de regresores
+        b = (X' * X) \ (X' * Y); % Estimación de coeficientes
+
+        % Guardar estimaciones de beta1
+        beta1_hat(sim, j) = b(2);
+    end
+    
+    % Calcular el sesgo de beta1_hat
+    bias_beta1(j) = mean(beta1_hat(:, j)) - beta1;
+end
+
+% Graficar la distribución asintótica de beta1_hat para cada alpha1 en un solo gráfico
+figure;
+hold on;
+colors = lines(length(alphas));
+for j = 1:length(alphas)
+    histogram(beta1_hat(:, j), 'Normalization', 'pdf', 'DisplayName', ['\alpha_1 = ', num2str(alphas(j))], 'FaceColor', colors(j, :), 'EdgeColor', 'none', 'FaceAlpha', 0.5);
+end
+hold off;
+title('Distribución Asintótica de \beta_1^{MCO} para Diferentes Valores de \alpha_1');
+xlabel('\beta_1^{MCO}');
+ylabel('Densidad');
+legend show;
+
+% Reporte del sesgo promedio para cada alpha1
+disp('Sesgo promedio de beta1_hat para diferentes valores de alpha1:');
+for j = 1:length(alphas)
+    disp(['alpha1 = ', num2str(alphas(j)), ', Bias(beta1_hat) = ', num2str(bias_beta1(j))]);
+end
