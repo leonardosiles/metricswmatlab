@@ -62,7 +62,7 @@ while m > tol
          ll1 = sum(log(normcdf(Z*b_lambda1)));
     end
     % Finalmente, se calcula b1 con el lambda que hace el mejor salto
-    b1 = b0 + lambda.*(B\g);
+    b1 = b0 + (lambda/2).*(B\g);
     % Criterio de convergencia. Estadistico m
     m = g'*(B\g);
     % Actualización de b0 para la siguiente iteración
@@ -80,8 +80,27 @@ end
 toc;
 % Beta de probit
 b = b1;
-
-%% Queda pendiente el calculo de las matrices de covarianza
-v0 = zeros(k, k);
-robust = zeros(k, k);
+% Matriz de varianzas y covarianzas bajo el supuesto de esp. correcta
+Q0 =  zeros(k,k);
+for i = 1:n
+    wi = (normpdf(X(i,:)*b)/normcdf(X(i,:)*b))*(normpdf(-X(i,:)*b)/normcdf(-X(i,:)*b));
+    qi = wi.*(X(i, :)'*X(i, :));
+    Q0 = Q0 + qi;
+end
+Q0 = (1/n).*Q0;
+v0 = inv(Q0);
+% Matriz de varianzas y covarianzas robusta
+Q = zeros(k,k);
+omega = zeros(k,k);
+for i = 1:n
+    mu_i = Z(i, :)*b;
+    eta_i = normpdf(mu_i)/normcdf(mu_i);
+    q_i = eta_i*(mu_i+eta_i).*(X(i, :)'*X(i, :));
+    omega_i = (eta_i^2).*(X(i, :)'*X(i, :));
+    Q = Q + q_i;
+    omega = omega + omega_i;
+end
+Q = (1/n).*Q;
+omega = (1/n).*omega;
+robust = Q\omega/Q;
 end
