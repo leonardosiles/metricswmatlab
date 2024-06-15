@@ -38,10 +38,12 @@ end
 
 for a1 = [0.1, 0.5, 1, 5, 10]
 
-X_i = a0 + a1*Z_i + u_i;    % Primera etapa.
-Y = b0 + b1*X_i + e_i;    % Segunda etapa.
+X_i = a0 + a1*Z_i + a2*W_i + u_i;    % Primera etapa.
+Y = b0 + b1*X_i + a2*W_i + e_i;    % Segunda etapa.
 
-X = [ones(N,1), X_i];
+x_i = a0 + a1*Z_i + u_i;    % Primera etapa omitiendo W_i.
+
+X = [ones(N,1), x_i];
 
 beta_gorro = inv(X'*X)*X'*Y;
 
@@ -70,31 +72,27 @@ end
 
 for a1 = [0.1, 0.5, 1, 5, 10]
 
-X_i = a0 + a1*Z_i + u_i;    % Primera etapa.
-Y = b0 + b1*X_i + e_i;    % Segunda etapa.
-
-X = [ones(N,1), X_i];
-
 B = 1000;         % Número de simulaciones. 
 bm = NaN(2,B);    % Vector de coeficientes simulados por Montecarlo.
 
 for i = 1:B
+    X_i = a0 + a1*Z_i + a2*W_i + u_i;    % Primera etapa.
+    Y = b0 + b1*X_i + a2*W_i + e_i;    % Segunda etapa.
+
+    x_i = a0 + a1*Z_i + u_i;    % Primera etapa omitiendo W_i.
+
+    X = [ones(N,1), x_i];
+    
     m = randi(N,N,1);      % Vector de m pares aleatorios intependientes de tamaño n. 
     bm(:,i) = (X(m,:)'*X(m,:))\(X(m,:)'*Y(m)) ;
 end
 bm = sort(bm,2);
 
 % Calcular la densidad estimada
+hold on;
 [f,xi] = ksdensity(bm(2, :));
-
-% Graficar la curva de densidad estimada
 plot(xi,f,'LineWidth',2);
-xlabel('Valor');
-ylabel('Densidad');
-title('Curva de densidad estimada $\hat{\beta}_{1}$', 'Interpreter','latex');
-
-filename = ['densidad_alpha_', num2str(a1), '.png'];
-    saveas(gcf, filename);
+hold off;
 
 % Con 1000 muestras aleatorias, el estimador es bien comportado. 
 
@@ -106,6 +104,14 @@ disp(['Para un alpha_1 = ', num2str(a1), ', el sesgo de nuestro estimador de MCO
     disp(sesgo);
 end
 
+xlabel('Valor');
+ylabel('Densidad');
+title('Curva de densidad estimada $\hat{\beta}_{1}$', 'Interpreter','latex');
+legend('$\alpha_1 = 0.1$', '$\alpha_1 = 0.5$','$\alpha_1 = 1$', ...
+    '$\alpha_1 = 5$', '$\alpha_1 = 10$','Interpreter','latex');
+
+filename = ['densidad_alpha', '.png'];
+    saveas(gcf, filename);
 % El sesgo se reduce con un alpha_1 más grande. 
 % Según la el manual de ivregress en stata: Both theoretical and Monte Carlo exercises indicate 
 % that the LIML estimator may yield less bias and confidence intervals with better coverage rates 
