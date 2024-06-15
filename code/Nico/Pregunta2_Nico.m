@@ -3,7 +3,7 @@
 clear all
 clc
 
-rng(14)               % Semilla. 
+rng(1)               % Semilla. 
 
 b0 = 1;
 b1 = 2;
@@ -14,15 +14,12 @@ a2 = 3;
 
 N = 1000;
 
-e_i = 1*randn(N,1);
-u_i = 1*randn(N,1);
-
-W_i = 1*randn(N,1) + 2;
-
-v_i = unifrnd(0,1,[N,1]); 
+e_i = randn(N,1);
+u_i = randn(N,1);
+W_i = normrnd(2, 1, N, 1);
+v_i = rand(N, 1); 
 
 Z_i = zeros(N,1); 
-
 for i = 1:N
     if v_i(i) < 0.8                       
        Z_i(i) = 1;  
@@ -39,11 +36,9 @@ end
 for a1 = [0.1, 0.5, 1, 5, 10]
 
 X_i = a0 + a1*Z_i + a2*W_i + u_i;    % Primera etapa.
-Y = b0 + b1*X_i + a2*W_i + e_i;    % Segunda etapa.
+Y = b0 + b1*X_i + b2*W_i + e_i;    % Segunda etapa.
 
-x_i = a0 + a1*Z_i + u_i;    % Primera etapa omitiendo W_i.
-
-X = [ones(N,1), x_i];
+X = [ones(N,1), X_i];
 
 beta_gorro = inv(X'*X)*X'*Y;
 
@@ -77,11 +72,9 @@ bm = NaN(2,B);    % Vector de coeficientes simulados por Montecarlo.
 
 for i = 1:B
     X_i = a0 + a1*Z_i + a2*W_i + u_i;    % Primera etapa.
-    Y = b0 + b1*X_i + a2*W_i + e_i;    % Segunda etapa.
+    Y = b0 + b1*X_i + b2*W_i + e_i;    % Segunda etapa.
 
-    x_i = a0 + a1*Z_i + u_i;    % Primera etapa omitiendo W_i.
-
-    X = [ones(N,1), x_i];
+    X = [ones(N,1), X_i];   % Primera etapa omitiendo W_i.
     
     m = randi(N,N,1);      % Vector de m pares aleatorios intependientes de tamaño n. 
     bm(:,i) = (X(m,:)'*X(m,:))\(X(m,:)'*Y(m)) ;
@@ -129,38 +122,40 @@ X_i = a0 + a1*Z_i + a2*W_i + u_i;
 Z = [ones(N,1), Z_i, W_i];        
 zeta_gorro = inv(Z'*Z)*Z'*X_i;
 
+% Segunda etapa.
+
+X_hat = Z*zeta_gorro;
+Y = b0 + b1*X_hat + b2*W_i + e_i;    
+
+X = [ones(N,1), X_hat, W_i];        
+beta_gorro = inv(X'*X)*X'*Y;
+
+% Errores estándares - Segunda Etapa.
+
+K = length(beta_gorro);
+e_gorro = Y - X*beta_gorro;
+
+s = (e_gorro'*e_gorro)/(N-K);    % Varianza estimada del error.
+se = sqrt(s*diag(inv(X'*X)));    % Error estándar homocedástico.
+se_r = sqrt(diag(inv(X'*X)*(X'*((diag(e_gorro.^2))/(N-K))*X)*inv(X'*X))); % Error estándar robusto.
+
 % Test F. Utiliza errores estándares robustos. 
 
-u_gorro = Y - X*beta_gorro;
-
 K = length(zeta_gorro);
+u_gorro = X_i - Z*zeta_gorro;
 
+s1 = (u_gorro'*u_gorro)/(N-K);    % Varianza estimada del error.
+se1 = sqrt(s1*diag(inv(Z'*Z)));    % Error estándar homocedástico.
 se1_r = sqrt(diag(inv(Z'*Z)*(Z'*diag((u_gorro.^2)/(N-K))*Z)*inv(Z'*Z))); % Error estándar robusto (primera etapa)
 
 R = [0 1 0]';
 c = [0 0 0]';                      % Valor de la hipotesis a testear -> H0 : a1 = 0.
 q = 1;
 
-ftest= (R'*zeta_gorro - c)' * inv(se1_r(2,1)*R'*inv(Z'*Z)*R) * (R'*zeta_gorro - c);  % Teest F.
-p_value1 = 2 * (1 - fcdf(abs(ftest), q, N -K)); 
+ftest= (R'*zeta_gorro - c)' * inv(se1(2,1)*R'*inv(Z'*Z)*R) * (R'*zeta_gorro - c);  % Teest F.
+p_value1 = 2 * (1 - fcdf(abs(ftest), q, N - K)); 
 
-% Segunda etapa.
 
-Y = b0 + b1*X_i + b2*W_i + e_i;    
-
-X = [ones(N,1), X_i, W_i];
-
-beta_gorro = inv(X'*X)*X'*Y;
-
-u_gorro = Y - X*beta_gorro;
-
-K = length(beta_gorro);
-
-% Errores estándares.
-
-s = (u_gorro'*u_gorro)/(N-K);    % Varianza estimada del error.
-se = sqrt(s*diag(inv(X'*X)));    % Error estándar homocedástico.
-se_r = sqrt(diag(inv(X'*X)*(X'*((diag(u_gorro.^2))/(N-K))*X)*inv(X'*X))); % Error estándar robusto.
 
 Primera_Etapa = table(zeta_gorro, se1_r, ...
     'VariableNames', {'Coeficiente', 'SE Robusto'});
@@ -173,7 +168,7 @@ disp(['Para un alpha_1 = ', num2str(a1), ', la primera etapa tiene coeficientes 
 disp(Primera_Etapa);
 
 disp(['donde el Test F = ']);
-disp(ftest );
+disp(ftest);
 
 disp(['y su segunda etapa será:']);
 disp(Pregunta3);
