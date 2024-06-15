@@ -203,7 +203,7 @@ Z = [o,data1{1,3}];
 Y = data1{1,2};
 X = data1{1,1};
 iv = zeros(2,5); % vector donde guardamos estimaciones por IV
-F = zeros(1,5);
+F = zeros(2,5);
 Errores_h = zeros(2,5);
 Errores_r = zeros(2,5);
 adj = N/(N-1);
@@ -223,12 +223,18 @@ for i = 1:5
     xi = Z * g;
 
     % Test F iteración i
-    res_e1 = x - xi;
-    s2e1 = (res_e1' * res_e1) /(N-1);
+    rxi = x - xi;
+    s2xi = (rxi' * rxi) /(N-1);
     R = [0 1]';
-    Fi = (R' * g) * inv( s2e1 * R' * inv(Z' * Z) * R ) * (R' * g);
+    Fi = (R' * g) * inv( s2xi * R' * inv(Z' * Z) * R ) * (R' * g);
 
-    F(i) = Fi;
+    F(1,i) = Fi;
+
+    % F robusto
+    D = diag(rxi.^2);
+    vxi = (Z' * Z) \ Z' * D * Z / (Z' * Z);
+    Fir = (R' * g) * inv( R' * vxi * R ) * (R' * g);
+    F(2,i) = Fir;
 
     % Segunda etapa iteración i
 
@@ -250,4 +256,117 @@ for i = 1:5
     Errores_r(:,i) = sqrt(diag(adj * vi));
 end
 
-clearvars -except iv F Errores_h Errores_r;
+clearvars -except iv F Errores_h Errores_r data1;
+
+
+%% Simulación MC2E
+
+N=10000;
+b0 = 1;
+b1 = 2;
+b2 = 5;
+a0 = -4;
+a1 = [0.1,0.5,1,5,10];
+a2 = 3;
+
+MC2E = zeros(N,5);
+o = ones(N,1);
+
+rng(3)
+
+for s = 1:N
+    % Simulación s 
+
+    v = rand(N,1);
+    u = randn(N,1);
+    e = randn(N,1);
+    W = normrnd(2,1,N,1);
+
+    Z = zeros(N,1);
+    for i = 1:N
+        if v(i) < 0.8
+            Z(i) = 1;
+        else
+            Z(i) = 0;
+        end
+        if i == N
+            clear i;
+        end
+    end
+
+    X = zeros(N,5);
+    Y = cell(1,5);
+    for i = 1:5
+        X(:,i) = a0 + a1(i) * Z + a2 * W + u;
+        Y{i} = b0 + b1 * X(:,i) + b2 * W + e;
+        if i == 5
+            clear i ;
+        end
+    end
+    x = cell(1,5);
+    for i = 1:5
+        xi = [o ,X(:,i)];
+        x{i} = xi;
+
+        if i == 5
+            clear xi i X;
+        end
+    end
+
+    Z =[o ,Z];
+    % MC2E
+    for i =1:5
+        % Primera etapa
+        xi = x{i};
+        xi = xi(:,2);
+        g = (Z' * Z) \ Z' * xi;
+        xiz = Z * g;
+
+        % segunda etapa
+        xiv = [o,xiz];
+        xx = xiv' * xiv;
+        xy = xiv' * Y{i};
+        Biv(:,i) = xx \ xy;
+        if i == 5
+            clear i xiv xx xy;
+        end
+
+    end
+
+    MC2E(s,:) = Biv(2,:);
+    if s == N
+        clear o s u v W x Y Z;
+    end
+end
+
+
+hold on; 
+for i = 1:3
+    [f, x] = ksdensity(MC2E(:,i));
+    plot(x, f,'LineWidth',2);
+end
+hold off;
+
+xlabel('$\hat{\beta}_{1}^{MCO}$', 'Interpreter', 'latex');
+
+ylabel('Densidad','Interpreter', 'latex');
+title('Kernel Estimador MCO', 'Interpreter', 'latex');
+legend('$\alpha_1$', '$\alpha_2$', '$\alpha_3$', ...
+    'Interpreter', 'latex');
+
+
+hold on; 
+for i = 4:5
+    [f, xi] = ksdensity(MC2E(:,i));
+    plot(xi, f,'LineWidth',2);
+end
+hold off;
+
+xlabel('$\hat{\beta}_{1}^{MCO}$', 'Interpreter', 'latex');
+ylabel('Densidad','Interpreter', 'latex');
+title('Kernel Estimador MCO', 'Interpreter', 'latex');
+legend('$\alpha_4$', '$\alpha_5$', ...
+    'Interpreter', 'latex');
+
+
+
