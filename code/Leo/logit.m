@@ -82,6 +82,19 @@ toc;
 % Beta de probit
 b = b1;
 % Matriz de covarianzas bajo el supuesto de especificacion correcta
-v0 = zeros(k,k);
-robust = zeros(k,k);
+Q0 = zeros(k,k);
+for i = 1:n
+    qi = (cdf(pd, X(i, :)*b)*(1-cdf(pd, X(i, :)*b))).*(X(i, :)'*X(i, :));
+    Q0 = Q0 + qi;
+end
+Q0 = (1/n).*Q0;
+v0 = inv(Q0);
+% Matriz de varianzas y covarianzas robusta
+omega = zeros(k,k);
+for i = 1:n
+    omega_i = (y(i) - cdf(pd, X(i, :)*b))^2.*(X(i, :)'*X(i, :));
+    omega = omega + omega_i;
+end
+omega = (1/n).*omega;
+robust = Q0\omega/Q0;
 end
