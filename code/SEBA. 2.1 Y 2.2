@@ -55,6 +55,14 @@ for i = 1:length(alphas)
 end
 
 %% 2
+% Parámetros dados en el problema
+beta0 = 1;
+beta1 = 2;
+beta2 = 5;
+alpha0 = -4;
+alpha2 = 3;
+N = 1000;
+alphas = [0.1, 0.5, 1, 5, 10];
 num_simulations = 1000;
 
 % Preparar matrices para almacenar resultados
@@ -73,11 +81,11 @@ for j = 1:length(alphas)
 
         % Generación de Xi y Yi
         Xi = alpha0 + alpha1 * Z + alpha2 * W + ui; % Genera Xi según la ecuación dada
-        Y = beta0 + beta1 * Xi + ei; % Genera Yi según la ecuación dada
+        Y = beta0 + beta1 * Xi + beta2 * W + ei;    % Genera Yi según la ecuación dada
 
         % Estimación usando MCO
         X = [ones(N, 1), Xi]; % Matriz de regresores
-        b = (X' * X) \ (X' * Y); % Estimación de coeficientes
+        b = (X' * X) \ (X' * Y); % Estimación de coeficientes usando MCO
 
         % Guardar estimaciones de beta1
         beta1_hat(sim, j) = b(2);
