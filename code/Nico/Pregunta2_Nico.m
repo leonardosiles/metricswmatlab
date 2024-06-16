@@ -95,14 +95,10 @@ xlabel('Valor');
 ylabel('Densidad');
 title('Curva de densidad estimada $\hat{\beta}_{1}$', 'Interpreter','latex');
 legend('$\alpha_1 = 0.1$', '$\alpha_1 = 0.5$','$\alpha_1 = 1$', ...
-    '$\alpha_1 = 5$', '$\alpha_1 = 10$','Interpreter','latex');
-filename = ['densidad_alpha_p1.png'];
-    saveas(gcf, filename);
-% El sesgo se reduce con un alpha_1 más grande. 
-% Según la el manual de ivregress en stata: Both theoretical and Monte Carlo exercises indicate 
-% that the LIML estimator may yield less bias and confidence intervals with better coverage rates 
-% than the 2SLS estimator. See Poi (2006) and Stock, Wright, and Yogo (2002) (and the papers cited 
-% therein) for Monte Carlo evidence
+    '$\alpha_1 = 5$', '$\alpha_1 = 10$','Interpreter','latex', ...
+    'Location', 'northwest');
+filename = ['densidad_alpha_p1.eps'];
+    print(gcf, filename, '-depsc', '-r300');
 
 %% Pregunta 3: Estimación por MC2E.
 clear all   % Se hace clear all. De lo contrario los resultados se traslapan.
@@ -199,8 +195,6 @@ disp(Pregunta3);
 
 end
 
-
-
 %% Pregunta 4: Distribución asintótica de MC2E.
 
 clear all   % Se hace clear all. De lo contrario los resultados se traslapan.
@@ -267,12 +261,11 @@ end
 
 xlabel('Valor');
 ylabel('Densidad');
-title('Curva de densidad estimada $\hat{\beta}_{1}$', 'Interpreter','latex');
+title('Curva de densidad estimada $\hat{\beta}_1^{MC2E}$', 'Interpreter','latex');
 legend('$\alpha_1 = 0.1$', '$\alpha_1 = 0.5$','$\alpha_1 = 1$', ...
     '$\alpha_1 = 5$', '$\alpha_1 = 10$','Interpreter','latex');
-filename = ['densidad_alpha_p4.png'];
-    saveas(gcf, filename);
-
+filename = ['densidad_alpha_p4.eps'];
+    print(gcf, filename, '-depsc', '-r300');
 
 %% Datos para Stata.
 
