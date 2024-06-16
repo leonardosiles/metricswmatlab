@@ -147,7 +147,7 @@ u_gorro = X_i - Z*zeta_gorro;
 
 % Segunda etapa.
 
-X_hat = Z*zeta_gorro + u_gorro;
+X_hat = Z*zeta_gorro;
 
 X = [ones(N,1), X_hat];         % Omitimos W_i.
 beta_gorro = inv(X'*X)*X'*Y;
@@ -205,6 +205,8 @@ end
 
 clear all   % Se hace clear all. De lo contrario los resultados se traslapan.
 
+rng(1)               % Semilla.
+
 N = 1000;
 
 b0 = 1;
@@ -228,8 +230,6 @@ for i = 1:N
     end
 end
 
-rng(1)               % Semilla.
-
 for a1 = [0.1, 0.5, 1, 5, 10]
 
 B = 1000;         % Número de simulaciones. 
@@ -243,10 +243,9 @@ for i = 1:B
     % Primera etapa.
     Z = [ones(N,1), Z_i];          % Omitimos W_i.
     zeta_gorro = inv(Z'*Z)*Z'*X_i;
-    u_gorro = X_i - Z*zeta_gorro;
 
     % Segunda etapa.
-    X_hat = Z*zeta_gorro + u_gorro;
+    X_hat = Z*zeta_gorro;
     X = [ones(N,1), X_hat];         % Omitimos W_i.
     
     m = randi(N,N,1);      % Vector de m pares aleatorios intependientes de tamaño n. 
@@ -276,9 +275,6 @@ filename = ['densidad_alpha_p4.png'];
 
 
 %% Datos para Stata.
-
-
-
 
 clc;
 clear;

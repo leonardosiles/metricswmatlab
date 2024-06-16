@@ -96,7 +96,7 @@ ylabel('Densidad');
 title('Curva de densidad estimada $\hat{\beta}_{1}$', 'Interpreter','latex');
 legend('$\alpha_1 = 0.1$', '$\alpha_1 = 0.5$','$\alpha_1 = 1$', ...
     '$\alpha_1 = 5$', '$\alpha_1 = 10$','Interpreter','latex');
-filename = ['densidad_alpha.png'];
+filename = ['densidad_alpha_p1.png'];
     saveas(gcf, filename);
 % El sesgo se reduce con un alpha_1 más grande. 
 % Según la el manual de ivregress en stata: Both theoretical and Monte Carlo exercises indicate 
@@ -147,7 +147,7 @@ u_gorro = X_i - Z*zeta_gorro;
 
 % Segunda etapa.
 
-X_hat = Z*zeta_gorro + u_gorro;
+X_hat = Z*zeta_gorro;
 
 X = [ones(N,1), X_hat];         % Omitimos W_i.
 beta_gorro = inv(X'*X)*X'*Y;
@@ -214,6 +214,20 @@ b2 = 5;
 a0 = -4;
 a2 = 3; 
 
+e_i = randn(N,1);
+u_i = randn(N,1);
+W_i = normrnd(2, 1, N, 1);
+v_i = rand(N, 1); 
+
+Z_i = zeros(N,1); 
+for i = 1:N
+    if v_i(i) < 0.8                       
+        Z_i(i) = 1;  
+    else             
+        Z_i(i) = 0;
+    end
+end
+
 rng(1)               % Semilla.
 
 for a1 = [0.1, 0.5, 1, 5, 10]
@@ -223,32 +237,17 @@ bm = NaN(2,B);    % Vector de coeficientes simulados por Montecarlo.
 
 for i = 1:B
     
+    X_i = a0 + a1*Z_i + a2*W_i + u_i; 
+    Y = b0 + b1*X_i + b2*W_i + e_i;
 
-e_i = randn(N,1);
-u_i = randn(N,1);
-W_i = normrnd(2, 1, N, 1);
-v_i = rand(N, 1); 
+    % Primera etapa.
+    Z = [ones(N,1), Z_i];          % Omitimos W_i.
+    zeta_gorro = inv(Z'*Z)*Z'*X_i;
+    u_gorro = X_i - Z*zeta_gorro;
 
-Z_i = zeros(N,1); 
-for i = 1:N
-    if v_i(i) < 0.8                       
-       Z_i(i) = 1;  
-    else             
-       Z_i(i) = 0;
-    end
-end
-
-X_i = a0 + a1*Z_i + a2*W_i + u_i; 
-Y = b0 + b1*X_i + b2*W_i + e_i;
-
-% Primera etapa.
-Z = [ones(N,1), Z_i];          % Omitimos W_i.
-zeta_gorro = inv(Z'*Z)*Z'*X_i;  
-
-% Segunda etapa.
-X_hat = Z*zeta_gorro + u_gorro;
-X = [ones(N,1), X_hat];         % Omitimos W_i.
-beta_gorro = inv(X'*X)*X'*Y;
+    % Segunda etapa.
+    X_hat = Z*zeta_gorro;
+    X = [ones(N,1), X_hat];         % Omitimos W_i.
     
     m = randi(N,N,1);      % Vector de m pares aleatorios intependientes de tamaño n. 
     bm(:,i) = (X(m,:)'*X(m,:))\(X(m,:)'*Y(m)) ;
@@ -256,7 +255,7 @@ end
 bm = sort(bm,2);
 
 % Sesgo.
-sesgo = mean(bm(2,:))- b1;
+sesgo = mean(bm(2,:)) - b1;
 disp(['Para un alpha_1 = ', num2str(a1), ', el sesgo de nuestro estimador de MCO será:']);
     disp(sesgo);
 
@@ -272,14 +271,8 @@ ylabel('Densidad');
 title('Curva de densidad estimada $\hat{\beta}_{1}$', 'Interpreter','latex');
 legend('$\alpha_1 = 0.1$', '$\alpha_1 = 0.5$','$\alpha_1 = 1$', ...
     '$\alpha_1 = 5$', '$\alpha_1 = 10$','Interpreter','latex');
-filename = ['densidad_alpha.png'];
+filename = ['densidad_alpha_p4.png'];
     saveas(gcf, filename);
-
-
-
-
-
-end
 
 
 %% Datos para Stata.
