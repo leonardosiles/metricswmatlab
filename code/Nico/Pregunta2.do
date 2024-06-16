@@ -90,3 +90,7 @@ foreach alpha1 of local alpha1_values {
 	ivregress 2sls Y_i (X_i = Z_i), first
 }
 	
+
+reg X_i Z_i
+predict xhat
+reg Y_i xhat
