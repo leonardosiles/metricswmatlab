@@ -1,6 +1,6 @@
 % Estimador de MCO
-% Incluye tres tipos de errores estándar:
-% Homocedásticos, robustos y ajustados por clúster
+% Incluye tres tipos de errores estandar:
+% Homocedasticos, robustos y ajustados por clúster
 
 function [coef, vcov, rvcov, clvcov] = mco(y, X, id)
 
