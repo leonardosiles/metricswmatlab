@@ -86,5 +86,4 @@ grid on;
 grid minor;
 xlabel('Nivel de educación');
 ylabel('Efectos marginales');
-% Agregar leyenda
 legend('Probit', 'Logit', 'MPL', 'Location', 'Best');
