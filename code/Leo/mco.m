@@ -45,3 +45,4 @@ end
     clvcov = adj*eye(k)*XX\omega/XX;            % Matriz var-cov agrupada 
     end
 end
+
