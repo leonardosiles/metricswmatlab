@@ -197,120 +197,73 @@ disp(Segunda_Etapa);
 
 end
 
-%% Pregunta 4: Distribución asintótica de MC2E.
-
-clear all   % Se hace clear all. De lo contrario los resultados se traslapan.
-
-rng(1)               % Semilla.
-
+%% 4
+% Parámetros dados en el problema
+beta0 = 1;
+beta1 = 2;
+beta2 = 5;
+alpha0 = -4;
+alpha2 = 3;
 N = 1000;
+num_simulations = 1000;
+a1_values = [0.1, 0.5, 1, 5, 10];
 
-b0 = 1;
-b1 = 2;
-b2 = 5;
+% Preparar matrices para almacenar resultados
+beta1_hat_MC2E = zeros(num_simulations, length(a1_values));
+bias_beta1_MC2E = zeros(length(a1_values), 1);
 
-a0 = -4;
-a2 = 3; 
-
-e_i = randn(N,1);
-u_i = randn(N,1);
-W_i = normrnd(2, 1, N, 1);
-v_i = rand(N, 1); 
-
-Z_i = zeros(N,1); 
-for i = 1:N
-    if v_i(i) < 0.8                       
-        Z_i(i) = 1;  
-    else             
-        Z_i(i) = 0;
+for j = 1:length(a1_values)
+    alpha1 = a1_values(j);
+    for sim = 1:num_simulations
+        % Generación de datos
+        W = normrnd(2, 1, N, 1);
+        ei = normrnd(0, 1, N, 1);
+        ui = normrnd(0, 1, N, 1);
+        vi = rand(N, 1);
+        Z = double(vi < 0.8);
+        
+        Xi = alpha0 + alpha1 * Z + alpha2 * W + ui;
+        Y = beta0 + beta1 * Xi + beta2 * W + ei;
+        
+        % Primera etapa
+        Z_ext = [ones(N, 1), Z];
+        zeta_gorro = (Z_ext' * Z_ext) \ (Z_ext' * Xi);
+        X_hat = Z_ext * zeta_gorro;
+        
+        % Segunda etapa
+        X_ext = [ones(N, 1), X_hat];
+        b_iv = (X_ext' * X_ext) \ (X_ext' * Y);
+        
+        % Guardar estimaciones de beta1
+        beta1_hat_MC2E(sim, j) = b_iv(2);
     end
+    
+    % Calcular el sesgo de beta1_hat
+    bias_beta1_MC2E(j) = mean(beta1_hat_MC2E(:, j)) - beta1;
 end
 
-for a1 = [0.1, 0.5, 1, 5, 10]
-
-B = 1000;         % Número de simulaciones. 
-bm = NaN(2,B);    % Vector de coeficientes simulados por Montecarlo.
-
-for i = 1:B
-    
-    X_i = a0 + a1*Z_i + a2*W_i + u_i; 
-    Y = b0 + b1*X_i + b2*W_i + e_i;
-
-    % Primera etapa.
-    Z = [ones(N,1), Z_i];          % Omitimos W_i.
-    zeta_gorro = inv(Z'*Z)*Z'*X_i;
-
-    % Segunda etapa.
-    X_hat = Z*zeta_gorro;
-    X = [ones(N,1), X_hat];         % Omitimos W_i.
-    
-    m = randi(N,N,1);      % Vector de m pares aleatorios intependientes de tamaño n. 
-    bm(:,i) = (X(m,:)'*X(m,:))\(X(m,:)'*Y(m)) ;
-end
-bm = sort(bm,2);
-
-% Sesgo.
-sesgo = mean(bm(2,:)) - b1;
-disp(['Para un alpha_1 = ', num2str(a1), ', el sesgo de nuestro estimador de MCO será:']);
-    disp(sesgo);
-
-% Calcular la densidad estimada
+% Graficar la distribución asintótica de beta1_hat para cada alpha1 en un solo gráfico
+figure;
 hold on;
-[f,xi] = ksdensity(bm(2, :));
-plot(xi,f,'LineWidth',2);
+colors = lines(length(a1_values));
+legendEntries = cell(length(a1_values), 1);  % Para almacenar las entradas de la leyenda
+for j = 1:length(a1_values)
+    h = histogram(beta1_hat_MC2E(:, j), 'Normalization', 'pdf', 'FaceColor', colors(j, :), 'EdgeColor', 'none', 'FaceAlpha', 0.5, 'BinWidth', 0.05);
+    % Crear una entrada de leyenda con un rectángulo del color correspondiente
+    legendEntries{j} = plot(nan, nan, 's', 'MarkerSize', 10, 'MarkerFaceColor', colors(j, :), 'MarkerEdgeColor', colors(j, :), 'DisplayName', ['\alpha_1 = ', num2str(a1_values(j))]);
+end
 hold off;
-end
-
-xlabel('Valor');
+title('Distribución Asintótica de \beta_{1}^{MC2E} para Diferentes Valores de \alpha_{1}');
+xlabel('\beta_{1}^{MC2E}');
 ylabel('Densidad');
-title('Curva de densidad estimada $\hat{\beta}_1^{MC2E}$', 'Interpreter','latex');
-legend('$\alpha_1 = 0.1$', '$\alpha_1 = 0.5$','$\alpha_1 = 1$', ...
-    '$\alpha_1 = 5$', '$\alpha_1 = 10$','Interpreter','latex');
-filename = ['densidad_alpha_p4.eps'];
-    print(gcf, filename, '-depsc', '-r300');
+xlim([0 4]); % Ajustar límites de los ejes
+legend([legendEntries{:}]);  % Mostrar la leyenda con las entradas personalizadas
 
-%% Datos para Stata.
-
-clc;
-clear;
-
-rng(1);
-
-for a1 = [0.1, 0.5, 1, 5, 10]
-
-N = 1000;
-
-b0 = 1;
-b1 = 2;
-b2 = 5;
-
-a0 = -4;
-a2 = 3; 
-
-e_i = randn(N,1);
-u_i = randn(N,1);
-W_i = normrnd(2, 1, N, 1);
-v_i = rand(N, 1); 
-
-Z_i = zeros(N,1); 
-for i = 1:N
-    if v_i(i) < 0.8                       
-       Z_i(i) = 1;  
-    else             
-       Z_i(i) = 0;
-    end
+% Reporte del sesgo promedio para cada alpha1
+disp('Sesgo promedio de beta1_hat_MC2E para diferentes valores de alpha1:');
+for j = 1:length(a1_values)
+    disp(['alpha1 = ', num2str(a1_values(j)), ', Bias(beta1_hat_MC2E) = ', num2str(bias_beta1_MC2E(j))]);
 end
 
-X_i = a0 + a1*Z_i + a2*W_i + u_i; 
-Y_i = b0 + b1*X_i + b2*W_i + e_i;
 
-X = [ones(N,1), X_i];
-
-beta_gorro = inv(X'*X)*X'*Y_i;
-
-datos = [Y_i, X_i, Z_i, W_i];
-filename = sprintf('datos_alpha_%.1f.csv', a1);
-writematrix(datos, filename);
-
-end
 
