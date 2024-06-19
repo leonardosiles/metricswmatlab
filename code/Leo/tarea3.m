@@ -1,5 +1,5 @@
-% Tarea 3 - Econometria I
-% Nicolas Bastias, Ignacio Leal, Sebastian Mejias y Leonardo Siles
+% Tarea 3 - Econometría I
+% Nicolás Bastías, Ignacio Leal, Sebastián Mejías y Leonardo Siles
 
 %% 1. Pregunta 1. Probabilidad lineal, logit y probit
 
@@ -86,3 +86,5 @@ grid on;
 grid minor;
 xlabel('Nivel de educación');
 ylabel('Efectos marginales');
+% Agregar leyenda
+legend('Probit', 'Logit', 'MPL', 'Location', 'Best');
