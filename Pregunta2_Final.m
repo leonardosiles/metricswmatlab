@@ -166,16 +166,17 @@ K = length(zeta_gorro);
 
 s1 = (u_gorro'*u_gorro)/(N-K);    % Varianza estimada del error.
 se1 = sqrt(s1*diag(inv(Z'*Z)));    % Error estándar homocedástico.
-se1_r = sqrt(diag(inv(Z' * Z) * (Z' * diag(u_gorro.^2) * (N / (N - K)) * Z) * inv(Z' * Z))); % Error estándar robusto.
+
+se1_r = sqrt(diag(inv(Z'*Z)*(Z'*diag(u_gorro.^2)*(N/(N-K))*Z)*inv(Z'*Z))); % Error estándar robusto.
 
 % Test F (Utiliza errores estándares robustos). 
 
 R = [0 1]';
-c = [0 0]';                      % Valor de la hipotesis a testear -> H0 : a1 = 0.
-q = 1;
-
-ftest= (R'*zeta_gorro - c)' * inv(se1_r(2,1)^2*R'*inv(Z'*Z)*R) * (R'*zeta_gorro - c);  % Test F.
-p_value1 = 2 * (1 - fcdf(abs(ftest), q, N - K)); 
+    c = 0;
+    q = 1;
+    var_beta = se1_r(2)^2;
+    ftest = (R' * zeta_gorro - c)^2 / var_beta;
+    p_value1 = 1 - fcdf(ftest, q, N - K);
 
 % Resultados.
 
@@ -185,12 +186,10 @@ Primera_Etapa = table(zeta_gorro, se1_r, ...
 Segunda_Etapa = table(beta_gorro, se, se_r, ...
     'VariableNames', {'Coeficiente', 'SE', 'SE Robusto'});
 
-
 disp(['Para un alpha_1 = ', num2str(a1), ', la primera etapa tiene coeficientes y errores estándares:']);
 disp(Primera_Etapa);
 
 disp(['donde el Test F = ', num2str(ftest)]);
-disp(ftest);
 
 disp(['y su segunda etapa será:']);
 disp(Segunda_Etapa);
@@ -313,4 +312,3 @@ filename = sprintf('datos_alpha_%.1f.csv', a1);
 writematrix(datos, filename);
 
 end
-
