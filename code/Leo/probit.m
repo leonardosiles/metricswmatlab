@@ -2,7 +2,7 @@
 % Utiliza el algoritmo de BHHH
 % v 0.1
 
-function [b, v0, robust] = probit(y, X, b0, tol)
+function [b, v0, robust, ll] = probit(y, X, b0, tol)
 % Asigno valores por defecto para el beta inicial y el criterio de
 % tolerancia
 arguments
@@ -80,6 +80,8 @@ end
 toc;
 % Beta de probit
 b = b1;
+% Log verosimilitud
+ll = ll1;
 % Matriz de varianzas y covarianzas bajo el supuesto de esp. correcta
 Q0 =  zeros(k,k);
 for i = 1:n
