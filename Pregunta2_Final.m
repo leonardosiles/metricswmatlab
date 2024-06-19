@@ -3,7 +3,7 @@
 clear all
 clc
 
-rng(1)               % Semilla. 
+rng(123)               % Semilla. 
 
 %% Pregunta 1: W_i no observable.
 
