@@ -265,6 +265,8 @@ ylabel('Densidad');
 title('Curva de densidad estimada $\hat{\beta}_1^{MC2E}$', 'Interpreter','latex');
 legend('$\alpha_1 = 0.1$', '$\alpha_1 = 0.5$','$\alpha_1 = 1$', ...
     '$\alpha_1 = 5$', '$\alpha_1 = 10$','Interpreter','latex');
+xlim([min(xi) max(xi)]);  % Ajusta los límites de x según tu preferencia
+ylim([0 0.6]);  % Ajusta los límites de y según tu preferencia
 filename = ['densidad_alpha_p4.eps'];
     print(gcf, filename, '-depsc', '-r300');
 
