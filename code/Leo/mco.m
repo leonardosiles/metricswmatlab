@@ -3,7 +3,6 @@
 % Homocedasticos, robustos y ajustados por clúster
 
 function [coef, vcov, rvcov, clvcov] = mco(y, X, id)
-
 arguments
     y {mustBeNumeric}
     X {mustBeNumeric}
@@ -29,12 +28,12 @@ end
     % Errores estándar robustos a la heterocedasticidad
 
     e2 = e.^2;              % residuos de MCO al cuadrado, vector n x 1
-    D = diag(e2);           % matriz diagonal con residuos al cuadrado, n x n
-    sdw = XX\X'*D*X/XX;     % sandwich de White
+    %D = diag(e2);           % matriz diagonal con residuos al cuadrado, n x n
+    sdw = XX\X'*diag(e2)*X/XX;     % sandwich de White
     rvcov = (n/(n-k))*sdw;  % ajuste por grados de libertad. matriz de varianzas y covarianzas robusta
 
     % Errores estandar ajustados por cluster
-    if id == 0
+    if id ~= 0
     [~, ~, index] = unique(id);
     g = length(unique(id));
     sumxe = zeros(g,k);     
