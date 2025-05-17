@@ -6,6 +6,9 @@ import excel "/Users/sebamejias23/Desktop/Invest. GL/Bases finales/IGPA_Trabajar
 
 * Identificar el primer año en que entra == 1
 egen first_entry = min(year / (entra == 1)), by(empresa)
+gen ever_in_ipsa = (entra == 1 | mantiene == 1)
+egen suma_in_ipsa = total(ever_in_ipsa), by(empresa)
+gen never_treated = (suma_in_ipsa == 0)
 
 
 * Rellenar para la variable first_entry
@@ -32,7 +35,7 @@ twoway bar empresas event_time, ///
 	
 	graph export grafico1.png, replace
 	
-*Primera aproximación de la cantidad de empresas respecto al tratamiento (primera entrada al ipsa)
+*Primera aproximación de la cantidad de empresas en cada año de tratamiento (primera entrada al ipsa)
 *Ahora bien, pueden haber empresas para las cuales tenemos las dummies de entrada/salida pero no tenemos su información financiera...
 *A continuación, nos hacemos cargo de eso 
 
@@ -51,7 +54,7 @@ keep if n_validos >= 8
 
 gen event_time = year - first_entry
 
-*keep if inrange(event_time, -10, 10) La desactivamos... mejor hacerse cargo de eso en especificación... 
+keep if inrange(event_time, -25, 25) 
 
 save "data_event_time.dta", replace
 
@@ -70,6 +73,56 @@ twoway bar empresas event_time, ///
     xtick(, grid)
 	
 *Se ve un pequeño desbalanceo... Quizás se podría aplicar weights... VER CÓMO NOS PODRÍAMOS HACER CARGO 
+
+
+*Ahora la idea es evaluar la distribución de los tratados y nunca tratados. 
+clear all
+set more off
+
+* === Cargar base original con first_entry ===
+use "data_expanded.dta", clear
+
+
+
+* === Dejar solo una fila por empresa ===
+bysort empresa (year): keep if _n == 1
+
+* === Crear etiqueta de entrada ===
+gen entrada_label = string(first_entry)
+replace entrada_label = "Never Treated" if never_treated
+
+* === Contar empresas por grupo ===
+gen uno = 1
+collapse (sum) empresas = uno, by(entrada_label)
+
+* === Orden para el gráfico: Never Treated al final ===
+gen orden = real(entrada_label)
+replace orden = 9999 if entrada_label == "Never Treated"
+sort orden
+
+* === Gráfico 1: Tratadas + Never Treated ===
+graph bar empresas, over(entrada_label, sort(orden) label(angle(45))) ///
+    bar(1, color(cranberry)) ///
+    title("Distribución de empresas por año de entrada al IPSA") ///
+    ytitle("Número de empresas") ///
+    graphregion(color(white)) ///
+    legend(off)
+graph export grafico_tratados_y_nt.png, replace
+
+* === Gráfico 2: Solo tratadas ===
+drop if entrada_label == "Never Treated"
+graph bar empresas, over(entrada_label, sort(orden) label(angle(45))) ///
+    bar(1, color(navy)) ///
+    title("Distribución de empresas tratadas por año de entrada") ///
+    ytitle("Número de empresas") ///
+    graphregion(color(white)) ///
+    legend(off)
+graph export grafico_solo_tratados.png, replace
+
+
+
+
+*Incluir en estimaciones los nunca tratados como control 
 
 * === ESTIMACIÓN TWFE ===  
 *Ajustar variables por uf. FALTA
@@ -291,6 +344,7 @@ csdid_plot, ///
 
 
 *Realizamos lo anterior pero para salidas
+	
 	
 
 	
